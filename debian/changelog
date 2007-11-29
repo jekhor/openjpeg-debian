@@ -1,0 +1,63 @@
+openjpeg (1.2-3) unstable; urgency=low
+
+  * Sync up to SVN 485
+    Seems to have major memory leak in last version
+  * remove my so name damage from last version and revert to as it was
+
+ -- root <root@cornelius.demon.co.uk>  Tue, 27 Nov 2007 23:38:38 +0000
+
+openjpeg (1.2-2) unstable; urgency=low
+
+  * Updated to SVN version 465 as there are important bug fixes for 64 bit systems
+    as well as performance gains. Update is done via patch only not source update.
+    See native changelog for full details of differences.
+  * Correctly set so name to so.2 with version 1.2.0.so.2 
+  * Rebased patch to strip debug symbols to work with SVN update patch
+
+ -- Robin Cornelius <robin.cornelius@gmail.com>  Tue, 13 Nov 2007 13:41:38 +0000
+
+openjpeg (1.2-1) unstable; urgency=low
+
+  * New upstream release
+   - Now soversion 2
+   - Refresh debian patches
+   - Codecs now link to libtiff
+  * Update manpages for new codec options
+
+ -- Paul "TBBle" Hampson <Paul.Hampson@Pobox.com>  Fri, 15 Jun 2007 00:48:29 +1000
+
+openjpeg (1.1.1-4) unstable; urgency=low
+
+  * Convert five lines of Makefile patching into dpatches
+
+ -- Paul Hampson <Paul.Hampson@Pobox.com>  Thu, 29 Mar 2007 23:28:56 +1000
+
+openjpeg (1.1.1-3) unstable; urgency=low
+
+  * Remove build-depend on autotools-dev, there's no autotools use here
+  * Rename libopenjpeg-tools to openjpeg-tools
+  * Correctly install libopenjpeg.so.1.0.0 rather than libopenjpeg-1.0.0.so
+  * Make libopenjpeg1-dbg depend on the same-source version of libopenjpeg1
+  * Create manpages for image_to_j2k, j2k_to_image and index_create
+  * Update debian/copyright with full details of all contained licenses and
+    copyrights
+   - Thanks again to Romain Beauxis for reviewing
+
+ -- Paul Hampson <Paul.Hampson@Pobox.com>  Wed, 28 Mar 2007 20:01:10 +1000
+
+openjpeg (1.1.1-2) unstable; urgency=low
+
+  * Build-depend on autotools-dev to keep config.{sub,guess} up to date
+  * Correct description of libopenjpeg-tools
+  * Don't try to build so file without -fPIC
+  * Reformat copyright file to not conflate license and copyright statement
+   - Thanks to Romain Beauxis for reviewing
+
+ -- Paul Hampson <Paul.Hampson@Pobox.com>  Wed, 21 Mar 2007 19:42:08 +1100
+
+openjpeg (1.1.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #413987)
+
+ -- Paul Hampson <Paul.Hampson@Pobox.com>  Tue, 20 Mar 2007 12:52:33 +1100
+

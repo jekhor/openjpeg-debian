@@ -1,0 +1,115 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+CFLAGS = -Wall -g -ffast-math -std=c99
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+else
+	# Upstream default optimisation level
+	CFLAGS += -O3
+endif
+
+# shared library versions
+version=2.1.2.0
+major=2
+
+build: build-stamp
+build-stamp: patch
+	dh_testdir
+
+	# Build the .a file without -fPIC
+	$(MAKE) COMPILERFLAGS="$(CFLAGS)" libopenjpeg.a
+	mv libopenjpeg.a libopenjpeg.a.nopic
+	$(MAKE) clean
+
+	# Build the .so file with -fPIC
+	$(MAKE) COMPILERFLAGS="$(CFLAGS) -fPIC" libopenjpeg-$(version).so
+	mv libopenjpeg.a.nopic libopenjpeg.a
+	# Prevent it being rebuilt with -fPIC objects
+	touch libopenjpeg.a
+
+	# Build the utils against the shared library
+	ln -s libopenjpeg.so.${version} libopenjpeg.so
+	$(MAKE) -C codec CFLAGS="$(CFLAGS) -lstdc++"
+	rm libopenjpeg.so
+	# This doesn't actually use libopenjpeg
+	$(MAKE) -C indexer_JPIP CFLAGS="$(CFLAGS)"
+
+	touch $@
+
+clean: realclean unpatch
+realclean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	
+	-rm libopenjpeg.so
+	-rm libopenjpeg.a.nopic
+	-$(MAKE) -C codec clean
+	-$(MAKE) -C indexer_JPIP clean
+	-rm indexer_JPIP/index_create
+	-$(MAKE) clean
+	
+	dh_clean 
+	-rm $(manpages)
+
+install: build manpages
+	dh_testdir
+	dh_testroot
+	dh_clean -k 
+	dh_installdirs
+
+	make dist
+	# The libraries and header file are in dist/
+	# So we'll dump the binaries there too
+	cp codec/j2k_to_image codec/image_to_j2k dist/
+	cp indexer_JPIP/index_create dist/
+
+binary-indep: build install
+# We have nothing to do by default.
+
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs ChangeLog
+	dh_installdocs
+	dh_installexamples
+	dh_install --sourcedir=dist/
+	dh_installman
+	dh_link
+	dh_strip -N libopenjpeg$(major)
+	dh_strip -p libopenjpeg$(major) --dbg-package=libopenjpeg$(major)-dbg
+	dh_compress
+	dh_fixperms
+	dh_makeshlibs
+	dh_installdeb
+	dh_shlibdeps -L libopenjpeg$(major) -l debian/libopenjpeg$(major)/usr/lib
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean realclean binary-indep binary-arch binary install manpages patch unpatch
+.SUFFIXES: .1 .help
+
+%.1: %.help
+	txt2man -v "OpenJPEG Reference Manual" -t $(subst debian/,,$*) -s 1 -r "$(subst debian/,,$*) 1.1.1" $< > $@
+
+# Generated manpages
+manpages := debian/image_to_j2k.1 debian/j2k_to_image.1 debian/index_create.1
+manpages: $(manpages)
+
+# dpatch rules
+patch: patch-stamp
+patch-stamp:
+	dpatch apply-all
+	dpatch cat-all >patch-stamp
+	touch patch-stamp
+
+unpatch:
+	dpatch deapply-all
+	rm -rf patch-stamp debian/patched

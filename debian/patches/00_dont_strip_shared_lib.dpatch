@@ -1,0 +1,20 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 00_dont_strip_shared_lib.dpatch by  <robin@debian>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Dont apply the -s strip flag to the shared lib debian will do it for us 
+## DP: where necessary
+
+@DPATCH@
+
+--- ./Makefile.orig	2007-11-13 13:35:02.000000000 +0000
++++ ./Makefile	2007-11-13 13:35:13.000000000 +0000
+@@ -54,7 +54,7 @@
+ 	$(AR) r $@ $(MODULES)
+ 
+ $(SHAREDLIB): $(MODULES)
+-	$(CC) -s -shared -Wl,-soname,$(LIBNAME) -o $@ $(MODULES) $(LIBRARIES)
++	$(CC) -shared -Wl,-soname,$(LIBNAME) -o $@ $(MODULES) $(LIBRARIES)
+ 
+ install: OpenJPEG
+ 	install -d '$(DESTDIR)$(INSTALL_LIBDIR)' '$(DESTDIR)$(INSTALL_INCLUDE)'

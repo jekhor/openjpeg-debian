@@ -1,0 +1,3 @@
+j2k_to_image /usr/bin/
+image_to_j2k /usr/bin/
+index_create /usr/bin/

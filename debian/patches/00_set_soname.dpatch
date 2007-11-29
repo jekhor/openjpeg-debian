@@ -1,0 +1,21 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 00_fix_soname.dpatch by  <robin@debian>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Correctly set the so name to 2
+
+@DPATCH@
+
+Only in .: dpatch
+diff -ur -xdebian ../openjpeg-1.2.orig/Makefile ./Makefile
+--- ../openjpeg-1.2.orig/Makefile	2007-11-13 13:12:56.000000000 +0000
++++ ./Makefile	2007-11-13 13:18:31.000000000 +0000
+@@ -26,7 +26,7 @@
+ 
+ TARGET  = openjpeg
+ STATICLIB = lib$(TARGET).a
+-SHAREDLIB = lib$(TARGET)-$(VER_MAJOR).$(VER_MINOR).so
++SHAREDLIB = lib$(TARGET)-$(VER_MINOR).so.$(VER_MAJOR)
+ LIBNAME = lib$(TARGET).so.$(VER_MAJOR)
+ 
+ 

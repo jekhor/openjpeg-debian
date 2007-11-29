@@ -1,0 +1,9 @@
+00_sync_to_svn_485.dpatch
+
+#not working due to massive previous patch
+#98_dynamically_link_codecs
+
+#stupid did this one
+#00_set_soname.dpatch
+
+00_dont_strip_shared_lib

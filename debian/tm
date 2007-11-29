@@ -1,0 +1,141 @@
+HELP
+----
+
+- the -h option displays this help information on screen
+
+List of parameters for the JPEG 2000 encoder:
+
+REMARKS:
+---------
+
+The markers written to the main_header are : SOC SIZ COD QCD COM.
+COD and QCD never appear in the tile_header.
+
+- This coder can encode a mega image, a test was made on a 24000x24000 pixels 
+color image.  You need enough disk space memory (twice the original) to encode 
+the image,i.e. for a 1.5 GB image you need a minimum of 3GB of disk memory)
+
+By default:
+------------
+
+ * Lossless
+ * 1 tile
+ * Size of precinct : 2^15 x 2^15 (means 1 precinct)
+ * Size of code-block : 64 x 64
+ * Number of resolutions: 6
+ * No SOP marker in the codestream
+ * No EPH marker in the codestream
+ * No sub-sampling in x or y direction
+ * No mode switch activated
+ * Progression order: LRCP
+ * No index file
+ * No ROI upshifted
+ * No offset of the origin of the image
+ * No offset of the origin of the tiles
+ * Reversible DWT 5-3
+
+Parameters:
+------------
+
+Required Parameters (except with -h):
+One of the two options -ImgDir or -i must be used
+
+-ImgDir      : Image file Directory path (example ../Images) 
+    When using this option -OutFor must be used
+
+-OutFor 
+    REQUIRED only if -ImgDir is used
+	  Need to specify only format without filename <BMP>  
+    Currently accepts PGM, PPM, PNM, PGX, BMP format
+
+-i           : source file  (-i source.pnm also *.pgm, *.ppm) 
+    When using this option -o must be used
+
+-o           : destination file (-o dest.j2k or .jp2) 
+
+Optional Parameters:
+
+-h           : display the help information 
+ 
+-cinema2k    : Digital Cinema 2K profile compliant codestream for 2K resolution.(-cinema2k 24 or 48) 
+	  Need to specify the frames per second for a 2K resolution. Only 24 or 48 fps is allowed
+
+-cinema4k    : Digital Cinema 4K profile compliant codestream for 4K resolution 
+	  Frames per second not required. Default value is 24fps
+
+-r           : different compression ratios for successive layers (-r 20,10,5)
+ 	         - The rate specified for each quality level is the desired 
+	           compression factor.
+		   Example: -r 20,10,1 means quality 1: compress 20x, 
+		     quality 2: compress 10x and quality 3: compress lossless
+
+               (options -r and -q cannot be used together)
+ 
+-q           : different psnr for successive layers (-q 30,40,50) 
+                (options -r and -q cannot be used together)
+ 
+-n           : number of resolutions (-n 3) 
+
+-b           : size of code block (-b 32,32) 
+
+-c           : size of precinct (-c 128,128) 
+
+-t           : size of tile (-t 512,512) 
+
+-p           : progression order (-p LRCP) [LRCP, RLCP, RPCL, PCRL, CPRL] 
+
+-s           : subsampling factor (-s 2,2) [-s X,Y] 
+	     Remark: subsampling bigger than 2 can produce error
+
+-POC         : Progression order change (-POC T1=0,0,1,5,3,CPRL/T1=5,0,1,6,3,CPRL) 
+      Example: T1=0,0,1,5,3,CPRL 
+			 : Ttilenumber=Resolution num start,Component num start,Layer num end,Resolution num end,Component num end,Progression order
+
+-SOP         : write SOP marker before each packet 
+
+-EPH         : write EPH marker after each header packet 
+
+-M           : mode switch (-M 3) [1=BYPASS(LAZY) 2=RESET 4=RESTART(TERMALL)
+                 8=VSC 16=ERTERM(SEGTERM) 32=SEGMARK(SEGSYM)] 
+                 Indicate multiple modes by adding their values. 
+                 ex: RESTART(4) + RESET(2) + SEGMARK(32) = -M 38
+
+-x           : create an index file *.Idx (-x index_name.Idx) 
+
+-ROI         : c=%d,U=%d : quantization indices upshifted 
+               for component c=%d [%d = 0,1,2]
+               with a value of U=%d [0 <= %d <= 37] (i.e. -ROI:c=0,U=25) 
+
+-d           : offset of the origin of the image (-d 150,300) 
+
+-T           : offset of the origin of the tiles (-T 100,75) 
+
+-I           : use the irreversible DWT 9-7 (-I) 
+
+IMPORTANT:
+-----------
+
+The index file has the structure below:
+---------------------------------------
+
+Image_height Image_width
+progression order
+Tiles_size_X Tiles_size_Y
+Tiles_nb_X Tiles_nb_Y
+Components_nb
+Layers_nb
+decomposition_levels
+[Precincts_size_X_res_Nr Precincts_size_Y_res_Nr]...
+   [Precincts_size_X_res_0 Precincts_size_Y_res_0]
+Main_header_end_position
+Codestream_size
+Tile_0 start_pos end_Theader end_pos TotalDisto NumPix MaxMSE
+Tile_1   ''           ''        ''        ''       ''    ''
+...
+Tile_Nt   ''           ''        ''        ''       ''    ''
+Tpacket_0 Tile layer res. comp. prec. start_pos end_pos disto
+...
+Tpacket_Np ''   ''    ''   ''    ''       ''       ''     ''
+MaxDisto
+TotalDisto
+

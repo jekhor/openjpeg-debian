@@ -1,0 +1,191 @@
+This package was debianized by Paul Hampson <Paul.Hampson@Pobox.com> on
+Tue, 16 Jan 2007 12:08:29 +1100.
+
+It was downloaded from http://www.openjpeg.org/
+
+Upstream Author: OpenJPEG Team <openjpeg@tele.ucl.ac.be>
+
+Full copyright and license statement: http://www.openjpeg.org/BSDlicense.txt
+
+Copyright:
+
+Copyright (c) 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+Copyright (c) 2002-2007, Professor Benoit Macq
+Copyright (c) 2001-2003, David Janssens
+Copyright (c) 2002-2003, Yannick Verschueren
+Copyright (c) 2003-2007, Francois-Olivier Devaux and Antonin Descampe
+Copyright (c) 2005, Herve Drolon, FreeImage Team
+All rights reserved.
+
+Except as noted below, this software is distributed under the following license:
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+==
+
+The following files:
+OPJViewer/source/imagjp2.h
+OPJViewer/source/OPJViewer.cpp
+OPJViewer/source/OPJViewer.h
+OPJViewer/source/wxj2kparser.cpp
+OPJViewer/source/imagj2k.cpp
+OPJViewer/source/imagmj2.cpp
+OPJViewer/source/wxjp2parser.cpp
+OPJViewer/source/imagjp2.cpp
+OPJViewer/source/imagj2k.h
+OPJViewer/source/imagmj2.h
+are copyright:
+Copyright (c) 2007, Digital Signal Processing Laboratory, Università degli studi di Perugia (UPG), Italy
+and are distributed under the above license.
+
+==
+
+The following files:
+jpwl/jpwl_lib.c
+jpwl/jpwl.h
+jpwl/crc.c
+jpwl/rs.c
+jpwl/rs.h
+jpwl/jpwl.c
+jpwl/crc.h
+are copyright:
+Copyright (c) 2001-2003, David Janssens
+Copyright (c) 2002-2003, Yannick Verschueren
+Copyright (c) 2003-2005, Francois Devaux and Antonin Descampe
+Copyright (c) 2005, Hervé Drolon, FreeImage Team
+Copyright (c) 2002-2005, Communications and remote sensing Laboratory, Universite catholique de Louvain, Belgium
+Copyright (c) 2005-2006, Dept. of Electronic and Information Engineering, Universita' degli Studi di Perugia, Italy
+and are distributed under the above license.
+
+==
+
+The following files:
+jp3d/libjp3dvm/jp3d.c
+jp3d/libjp3dvm/jp3d.h
+jp3d/libjp3dvm/pi.c
+jp3d/libjp3dvm/t1_3d.c
+jp3d/libjp3dvm/tcd.c
+jp3d/libjp3dvm/pi.h
+jp3d/libjp3dvm/t1_3d.h
+jp3d/libjp3dvm/tcd.h
+jp3d/libjp3dvm/t2.h
+jp3d/bin/openjpeg.h
+jp3d/codec/convert.c
+jp3d/codec/convert.h
+jp3d/codec/jp3d_to_volume.c
+jp3d/codec/volume_to_jp3d.c
+are copyright:
+Copyright (c) 2001-2003, David Janssens
+Copyright (c) 2002-2003, Yannick Verschueren
+Copyright (c) 2003-2005, Francois Devaux and Antonin Descampe
+Copyright (c) 2005, Hervé Drolon, FreeImage Team
+Copyright (c) 2002-2005, Communications and remote sensing Laboratory, Universite catholique de Louvain, Belgium
+Copyright (c) 2006, Mónica Díez García, Image Processing Laboratory, University of Valladolid, Spain
+and are distributed under the above license.
+
+==
+
+The following files:
+mj2/MJ2_codec/mj2_to_metadata.h
+mj2/MJ2_codec/meta_out.c
+mj2/MJ2_codec/meta_out.h
+mj2/MJ2_codec/mj2_to_metadata.c
+have no copyright asserted and are distributed under the above license.
+
+==
+
+The following files:
+jp3d/libjp3dvm/dirent.h
+are copyright:
+Copyright (C) 1998-2002  Toni Ronkko
+and are distributed under the following license:
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+``Software''), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED ``AS IS'', WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL TONI RONKKO BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+==
+
+The following files:
+mj2/MJ2_codec/compat/getopt.c
+jp3d/codec/getopt.c
+codec/compat/getopt.c
+are copyright:
+Copyright (c) 1987, 1993, 1994 The Regents of the University of California.  All rights reserved.
+and are distrbuted under the following license:
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+3. All advertising materials mentioning features or use of this software
+   must display the following acknowledgement:
+ This product includes software developed by the University of
+ California, Berkeley and its contributors.
+4. Neither the name of the University nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.
+
+==
+
+The following files:
+j2kviewer/src/Exec.java
+are copyright:
+Copyright (c) 1997 Marty hall, hall@apl.jhu.edu
+and "may be freely used or adapted"
+
+==
+
+The Debian packaging (ie the contents of the debian/ directory) is copyright:
+(C) 2007, Paul Hampson <Paul.Hampson@Pobox.com>
+and is distributed under the above license.

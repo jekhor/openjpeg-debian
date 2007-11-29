@@ -1,0 +1,53 @@
+Source: openjpeg
+Priority: extra
+Maintainer: Paul "TBBle" Hampson <Paul.Hampson@Pobox.com>
+Build-Depends: debhelper (>= 5), txt2man, dpatch (>= 2), libtiff4-dev
+Standards-Version: 3.7.2
+Section: libs
+
+Package: libopenjpeg-dev
+Section: libdevel
+Architecture: any
+Depends: libopenjpeg2 (= ${binary:Version})
+Description: JPEG 2000 image compression codec library development files
+ OpenJPEG is a codec library for handling the JPEG 2000 image compression
+ format.
+ .
+ This package contains the development files necessary for linking to the
+ OpenJPEG library
+
+Package: libopenjpeg2
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: JPEG 2000 image compression codec library shared objects
+ OpenJPEG is a codec library for handling the JPEG 2000 image compression
+ format.
+ .
+ This package contains the shared object files which make up the runtime
+ component of the OpenJPEG library
+
+Package: libopenjpeg2-dbg
+Section: libdevel
+Architecture: any
+Depends: libopenjpeg2 (= ${binary:Version})
+Description: JPEG 2000 image compression codec library shared objects
+ OpenJPEG is a codec library for handling the JPEG 2000 image compression
+ format.
+ .
+ This package contains the debug symbols to match the runtime component
+ of the OpenJPEG library, allowing debugging of a program using the
+ OpenJPEG library to usefully access details within the library itself.
+
+Package: openjpeg-tools
+Section: graphics
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: JPEG 2000 image compression codec tools
+ OpenJPEG is a codec library for handling the JPEG 2000 image compression
+ format.
+ .
+ This package contains the tools distributed with the OpenJPEG library:
+  - j2k_to_image, decodes j2k, jp2 and jpt files to pgm, ppm, pnm, pgx and bmp
+  - image_to_j2k, encodes pnm, pgm, pgx, bmp and ppm files to j2k and jp2
+  - index_create, create jp2 with JPIP index file from a j2k file

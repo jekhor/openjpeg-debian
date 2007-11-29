@@ -1,0 +1,41 @@
+NAME
+
+j2k_to_image - convert a J2K, JP2 or JPT file into a PGM, PPM, PNM, PGX or BMP file
+
+SYNOPSIS
+
+j2k_to_image -i source -o destination [-r reduction] [-l layers]
+j2k_to_image -ImgDir sourcedir -OutFor extension [-r reduction] [-l layers]
+j2k_to_image -h
+
+DESCRIPTION
+
+	j2k_to_image decodes a JPEG 2000-encoded image into another image format
+
+OPTIONS
+
+-ImgDir {sourcedir}  Directory of J2K, JP2 or JPT files to convert
+
+-OutFor {extension}  PGM, PPM, PNM, PGX or BMP output file format
+
+-i {source}       J2K, JP2 or JPT file to convert
+
+-o {destination}  PGM, PPM, PNM, PGX or BMP file to output to
+
+-h                Display help information 
+ 
+-r {reduction}    Number of highest resolution levels to be discarded. Output resolution is effectively divided by 2^reduction
+
+-l {layers}       Maximum count of quality layers to decode
+ 
+AUTHOR
+
+Written by Paul Hampson <Paul.Hampson@Pobox.com> based on the output of j2k_to_image -h as part of the Debian packaging of OpenJPEG
+
+COPYRIGHT
+
+Copyright 2007 Paul Hampson
+
+SEE ALSO
+
+image_to_j2k(1), http://www.openjpeg.org/index.php?menu=doc#decoder

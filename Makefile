@@ -18,8 +18,7 @@ INSTALL_INCLUDE = $(PREFIX)/include
 # Converts cr/lf to just lf
 DOS2UNIX = dos2unix
 
-COMPILERFLAGS = -Wall -O3 -ffast-math -std=c99 -fPIC
-LIBRARIES = -lstdc++
+COMPILERFLAGS = -Wall -O3 -ffast-math -std=c99 -fPIC -g $(EXTRA_CFLAGS)
 
 MODULES = $(SRCS:.c=.o)
 CFLAGS = $(COMPILERFLAGS) $(INCLUDE)
@@ -54,7 +53,7 @@ $(STATICLIB): $(MODULES)
 	$(AR) r $@ $(MODULES)
 
 $(SHAREDLIB): $(MODULES)
-	$(CC) -s -shared -Wl,-soname,$(LIBNAME) -o $@ $(MODULES) $(LIBRARIES)
+	$(CC) -shared -Wl,-soname,$(LIBNAME) -o $@ $(MODULES) -lm
 
 install: OpenJPEG
 	install -d '$(DESTDIR)$(INSTALL_LIBDIR)' '$(DESTDIR)$(INSTALL_INCLUDE)'

@@ -3,7 +3,7 @@ Priority: extra
 Maintainer: Secondlife Debian Maintainers <secondlife-debian-maintainers@slupdate.byteme.org.uk>
 Homepage: http://www.openjpeg.org
 Build-Depends: debhelper (>= 5), txt2man, dpatch (>= 2), libtiff4-dev
-Standards-Version: 3.7.2
+Standards-Version: 3.7.3
 Section: libs
 
 Package: libopenjpeg-dev
@@ -20,7 +20,7 @@ Depends: ${shlibs:Depends}
 Description: JPEG 2000 image compression codec library, a codec library for handling the 
  JPEG 2000 image compression format.
 
-Package: libopenjpeg2-dbg
+Package: libopenjpeg-dbg
 Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})

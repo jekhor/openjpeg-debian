@@ -57,11 +57,11 @@ Index: ./codec/Makefile
  all: j2k_to_image image_to_j2k
  
 -j2k_to_image: j2k_to_image.c ../libopenjpeg.a
-+j2k_to_image: j2k_to_image.c ../libopenjpeg.so
++j2k_to_image: j2k_to_image.c
  	gcc $(CFLAGS) compat/getopt.c index.c convert.c j2k_to_image.c -o j2k_to_image -L.. -lopenjpeg -I ../libopenjpeg/ -lm -ltiff
  
 -image_to_j2k: image_to_j2k.c ../libopenjpeg.a
-+image_to_j2k: image_to_j2k.c ../libopenjpeg.so
++image_to_j2k: image_to_j2k.c
  	gcc $(CFLAGS) compat/getopt.c index.c convert.c image_to_j2k.c -o image_to_j2k -L.. -lopenjpeg -I ../libopenjpeg/ -lm -ltiff
  
  clean:

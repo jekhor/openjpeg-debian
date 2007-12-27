@@ -1,9 +1,10 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## 00_dont_strip_shared_lib.dpatch by  <robin@debian>
+## 30_fix_build_for_debian.dpatch by <robin.cornelius@gmail.com>
 ##
 ## All lines beginning with `## DP:' are a description of the patch.
 ## DP: Dont apply the -s strip flag to the shared lib debian will do it for us 
 ## DP: where necessary
+## DP: Remove unnecessary linkage on lstdc++ and lm and add missing linkage for -lm
 
 @DPATCH@
 

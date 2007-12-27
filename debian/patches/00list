@@ -1,1 +1,1 @@
-00_dont_strip_shared_lib
+30_fix_build_for_debian.dpatch

@@ -60,6 +60,8 @@ typedef enum {
 			TRAK_BOX,
 			TKHD_BOX,
 			MDIA_BOX,
+			MDHD_BOX,
+			HDLR_BOX,
 			MINF_BOX,
 			VMHD_BOX,
 			STBL_BOX,
@@ -102,6 +104,8 @@ struct boxdef {
 #define TRAK_SIGN           "trak"
 #define TKHD_SIGN           "tkhd"
 #define MDIA_SIGN           "mdia"
+#define MDHD_SIGN           "mdhd"
+#define HDLR_SIGN           "hdlr"
 #define MINF_SIGN           "minf"
 #define VMHD_SIGN           "vmhd"
 #define STBL_SIGN           "stbl"
@@ -231,6 +235,22 @@ struct boxdef j22box[] =
 /* req */	{1, 1, 1},
 /* ins */	TRAK_BOX},
 
+/* sign */	{MDHD_SIGN,
+/* short */	"Media Header box",
+/* long */	"The media header declares overall information which is media-independent, and relevant to characteristics "
+			"of the media in a track",
+/* sbox */	0,
+/* req */	{1, 1, 1},
+/* ins */	MDIA_BOX},
+
+/* sign */	{HDLR_SIGN,
+/* short */	"Handler Reference box",
+/* long */	"This box within a Media Box declares the process by which the media-data in the track may be presented, "
+			"and thus, the nature of the media in a track",
+/* sbox */	0,
+/* req */	{1, 1, 1},
+/* ins */	MDIA_BOX},
+
 /* sign */	{MINF_SIGN,
 /* short */	"Media Information box",
 /* long */	"This box contains all the objects which declare characteristic information of the media in the track",
@@ -303,10 +323,18 @@ struct boxdef j22box[] =
 /* From little endian to big endian, 2 and 4 bytes */
 #define	BYTE_SWAP2(X)	((X & 0x00FF) << 8) | ((X & 0xFF00) >> 8)
 #define	BYTE_SWAP4(X)	((X & 0x000000FF) << 24) | ((X & 0x0000FF00) << 8) | ((X & 0x00FF0000) >> 8) | ((X & 0xFF000000) >> 24)
-#define	BYTE_SWAP8(X)	(((X & 0x00000000000000FF) << 56) | ((X & 0x000000000000FF00) << 40) | \
+
+#ifdef __WXGTK__
+#define	BYTE_SWAP8(X)	((X & 0x00000000000000FFULL) << 56) | ((X & 0x000000000000FF00ULL) << 40) | \
+                        ((X & 0x0000000000FF0000ULL) << 24) | ((X & 0x00000000FF000000ULL) << 8) | \
+						((X & 0x000000FF00000000ULL) >> 8)  | ((X & 0x0000FF0000000000ULL) >> 24) | \
+						((X & 0x00FF000000000000ULL) >> 40) | ((X & 0xFF00000000000000ULL) >> 56)
+#else
+#define	BYTE_SWAP8(X)	((X & 0x00000000000000FF) << 56) | ((X & 0x000000000000FF00) << 40) | \
                         ((X & 0x0000000000FF0000) << 24) | ((X & 0x00000000FF000000) << 8) | \
 						((X & 0x000000FF00000000) >> 8)  | ((X & 0x0000FF0000000000) >> 24) | \
-						((X & 0x00FF000000000000) >> 40) | ((X & 0xFF00000000000000) >> 56))
+						((X & 0x00FF000000000000) >> 40) | ((X & 0xFF00000000000000) >> 56)
+#endif
 
 /* From codestream to int values */
 #define STREAM_TO_UINT32(C, P)	(((unsigned long int) (C)[(P) + 0] << 24) + \
@@ -821,7 +849,114 @@ int OPJParseThread::box_handler_function(int boxtype, wxFile *fileid, wxFileOffs
 		};
 		break;
 
+		/* Media Header box */
+	case (MDHD_BOX): {
+			unsigned long int version;
+			unsigned short int language;
+			fileid->Read(&version, sizeof(unsigned long int));
+			version = BYTE_SWAP4(version);
+			if (version == 0) {
+				unsigned long int creation_time, modification_time, timescale, duration;
+				fileid->Read(&creation_time, sizeof(unsigned long int));
+				creation_time = BYTE_SWAP4(creation_time);
+				fileid->Read(&modification_time, sizeof(unsigned long int));
+				modification_time = BYTE_SWAP4(modification_time);
+				fileid->Read(&timescale, sizeof(unsigned long int));
+				timescale = BYTE_SWAP4(timescale);
+				fileid->Read(&duration, sizeof(unsigned long int));
+				duration = BYTE_SWAP4(duration);
+				const long unix_time = creation_time - 2082844800L;
+				wxTreeItemId currid = m_tree->AppendItem(parentid,
+					wxString::Format(wxT("Creation time: %u (%.24s)"), creation_time, ctime(&unix_time)),
+					m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+					new OPJMarkerData(wxT("INFO"))
+					);
+				const long unix_time1 = modification_time - 2082844800L;
+				currid = m_tree->AppendItem(parentid,
+					wxString::Format(wxT("Modification time: %u (%.24s)"), modification_time, ctime(&unix_time1)),
+					m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+					new OPJMarkerData(wxT("INFO"))
+					);
+				currid = m_tree->AppendItem(parentid,
+					wxString::Format(wxT("Timescale: %u (%.6fs)"), timescale, 1.0 / (float) timescale),
+					m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+					new OPJMarkerData(wxT("INFO"))
+					);
+				currid = m_tree->AppendItem(parentid,
+					wxString::Format(wxT("Duration: %u (%.3fs)"), duration, (float) duration / (float) timescale),
+					m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+					new OPJMarkerData(wxT("INFO"))
+					);
+			} else {
+				int8byte creation_time, modification_time, duration;
+				unsigned long int timescale;
+				fileid->Read(&creation_time, sizeof(int8byte));
+				creation_time = BYTE_SWAP8(creation_time);
+				fileid->Read(&modification_time, sizeof(int8byte));
+				modification_time = BYTE_SWAP8(modification_time);
+				fileid->Read(&timescale, sizeof(unsigned long int));
+				timescale = BYTE_SWAP4(timescale);
+				fileid->Read(&duration, sizeof(int8byte));
+				duration = BYTE_SWAP8(duration);
+				wxTreeItemId currid = m_tree->AppendItem(parentid,
+					wxString::Format(wxT("Creation time: %u"), creation_time),
+					m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+					new OPJMarkerData(wxT("INFO"))
+					);
+				currid = m_tree->AppendItem(parentid,
+					wxString::Format(wxT("Modification time: %u"), modification_time),
+					m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+					new OPJMarkerData(wxT("INFO"))
+					);
+				currid = m_tree->AppendItem(parentid,
+					wxString::Format(wxT("Timescale: %u"), timescale),
+					m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+					new OPJMarkerData(wxT("INFO"))
+					);
+				currid = m_tree->AppendItem(parentid,
+					wxString::Format(wxT("Duration: %u"), duration),
+					m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+					new OPJMarkerData(wxT("INFO"))
+					);
+			}
+			fileid->Read(&language, sizeof(unsigned short int));
+
+			wxTreeItemId currid = m_tree->AppendItem(parentid,
+				wxString::Format(wxT("Language: %d (%c%c%c)"), language & 0xEFFF,
+				0x60 + (char) ((language >> 10) & 0x001F), 0x60 + (char) ((language >> 5) & 0x001F), 0x60 + (char) ((language >> 0) & 0x001F)),
+				m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+				new OPJMarkerData(wxT("INFO"))
+				);
+		};
+		break;
 		
+		/* Media Handler box */
+	case (HDLR_BOX): {
+			unsigned long int version, predefined, temp[3];
+			char handler[4], name[256];
+			int namelen = wxMin(256, (filelimit - filepoint - 24));
+			fileid->Read(&version, sizeof(unsigned long int));
+			version = BYTE_SWAP4(version);
+			fileid->Read(&predefined, sizeof(unsigned long int));
+			fileid->Read(handler, 4 * sizeof(char));
+			fileid->Read(&temp, 3 * sizeof(unsigned long int));
+			fileid->Read(name, namelen * sizeof(char));
+
+			wxTreeItemId currid = m_tree->AppendItem(parentid,
+				wxString::Format(wxT("Handler: %.4s"), handler),
+				m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+				new OPJMarkerData(wxT("INFO"))
+				);
+					 
+			currid = m_tree->AppendItem(parentid,
+				wxString::Format(wxT("Name: %.255s"), name),
+				m_tree->TreeCtrlIcon_File, m_tree->TreeCtrlIcon_File + 1,
+				new OPJMarkerData(wxT("INFO"))
+				);
+					 				 
+		}
+		break;
+
 	/* not yet implemented */
 	default:
 		break;

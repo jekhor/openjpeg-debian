@@ -25,7 +25,15 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "opj_includes.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "openjpeg.h"
+#include "j2k_lib.h"
+#include "j2k.h"
+#include "jp2.h"
+#include "cio.h"
 #include "mj2.h"
 #include "mj2_convert.h"
 #include "compat/getopt.h"
@@ -77,13 +85,6 @@ void help_display()
     (stdout,"The markers written to the main_header are : SOC SIZ COD QCD COM.\n");
   fprintf
     (stdout,"COD and QCD never appear in the tile_header.\n");
-  fprintf(stdout,"\n");
-  fprintf
-    (stdout,"- This coder can encode a mega image, a test was made on a 24000x24000 pixels \n");
-  fprintf
-    (stdout,"color image.  You need enough disk space memory (twice the original) to encode \n");
-  fprintf
-    (stdout,"the image,i.e. for a 1.5 GB image you need a minimum of 3GB of disk memory)\n");
   fprintf(stdout,"\n");
   fprintf(stdout,"By default:\n");
   fprintf(stdout,"------------\n");
@@ -148,8 +149,6 @@ void help_display()
     (stdout,"                 Indicate multiple modes by adding their values. \n");
   fprintf
     (stdout,"                 ex: RESTART(4) + RESET(2) + SEGMARK(32) = -M 38\n");
-  fprintf
-    (stdout,"-x           : create an index file *.Idx (-x index_name.Idx) \n");
   fprintf
     (stdout,"-ROI         : c=%%d,U=%%d : quantization indices upshifted \n");
   fprintf
@@ -248,7 +247,7 @@ int main(int argc, char **argv)
 	opj_cinfo_t* cinfo;
   bool bSuccess;
 	int numframes;
-	double total_time = 0;
+	double total_time = 0;	
 
   /* default value */
   /* ------------- */
@@ -258,8 +257,7 @@ int main(int argc, char **argv)
   mj2_parameters.h = 288;			// CIF default value
   mj2_parameters.CbCr_subsampling_dx = 2;	// CIF default value
   mj2_parameters.CbCr_subsampling_dy = 2;	// CIF default value
-  mj2_parameters.frame_rate = 25;
-  
+  mj2_parameters.frame_rate = 25;	  
 	/*
 	configure the event callbacks (not required)
 	setting of each callback is optionnal
@@ -282,10 +280,12 @@ int main(int argc, char **argv)
 		sprintf(j2k_parameters->cp_comment,"%s%s", comment, version);
 	}
 
+	mj2_parameters.decod_format = 0;
+	mj2_parameters.cod_format = 0;
 
   while (1) {
     int c = getopt(argc, argv,
-      "i:o:r:q:f:t:n:c:b:x:p:s:d:h P:S:E:M:R:T:C:I:W:F:");
+      "i:o:r:q:f:t:n:c:b:p:s:d:h P:S:E:M:R:T:C:I:W:F:");
     if (c == -1)
       break;
     switch (c) {
@@ -468,14 +468,6 @@ int main(int argc, char **argv)
 			}
 			break;
       /* ----------------------------------------------------- */
-    case 'x':			/* creation of index file */
-      {
-				char *index = optarg;
-				strncpy(j2k_parameters->index, index, sizeof(j2k_parameters->index)-1);
-				j2k_parameters->index_on = 1;
-			}
-			break;
-      /* ----------------------------------------------------- */
     case 'p':			/* progression order */
 			{
 				char progression[4];
@@ -617,7 +609,7 @@ int main(int argc, char **argv)
     
   /* Error messages */
   /* -------------- */
-  if (!mj2_parameters.infile || !mj2_parameters.outfile) {
+	if (!mj2_parameters.cod_format || !mj2_parameters.decod_format) {
     fprintf(stderr,
       "Correct usage: mj2_encoder -i yuv-file -o mj2-file (+ options)\n");
     return 1;
@@ -688,8 +680,8 @@ int main(int argc, char **argv)
 	mj2_setup_encoder(movie, &mj2_parameters);   
   
   movie->tk[0].num_samples = yuv_num_frames(&movie->tk[0],mj2_parameters.infile); 
-  if (!movie->tk[0].num_samples) {
-    fprintf(stderr,"Unable to count the number of frames in YUV input file\n");
+  if (movie->tk[0].num_samples == -1) {
+		return 1;
   }
   
   // One sample per chunk
@@ -712,8 +704,9 @@ int main(int argc, char **argv)
   cio_write(cio, MJ2_MDAT, 4);	
   fwrite(buf,cio_tell(cio),1,mj2file);
   offset = cio_tell(cio);
-  opj_free(buf);
-  
+  opj_cio_close(cio);
+  free(buf);
+
   for (i = 0; i < movie->num_stk + movie->num_htk + movie->num_vtk; i++) {
     if (movie->tk[i].track_type != 0) {
       fprintf(stderr, "Unable to write sound or hint tracks\n");
@@ -734,7 +727,7 @@ int main(int argc, char **argv)
       for (sampleno = 0; sampleno < numframes; sampleno++) {		
 				double init_time = opj_clock();
 				double elapsed_time;
-				if (!yuvtoimage(tk, img, sampleno, j2k_parameters, mj2_parameters.infile)) {
+				if (yuvtoimage(tk, img, sampleno, j2k_parameters, mj2_parameters.infile)) {
 					fprintf(stderr, "Error with frame number %d in YUV file\n", sampleno);
 					return 1;
 				}
@@ -748,7 +741,7 @@ int main(int argc, char **argv)
 				cio_write(cio, JP2_JP2C, 4);	// JP2C
 
 				/* encode the image */
-				bSuccess = opj_encode(cinfo, cio, img, j2k_parameters->index);
+				bSuccess = opj_encode(cinfo, cio, img, NULL);
 				if (!bSuccess) {
 					opj_cio_close(cio);
 					fprintf(stderr, "failed to encode image\n");
@@ -758,6 +751,7 @@ int main(int argc, char **argv)
 				len = cio_tell(cio) - 8;
 				cio_seek(cio, 0);
 				cio_write(cio, len+8,4);
+				opj_cio_close(cio);
 				tk->sample[sampleno].sample_size = len+8;				
 				tk->sample[sampleno].offset = offset;
 				tk->chunk[sampleno].offset = offset;	// There is one sample per chunk 
@@ -769,7 +763,7 @@ int main(int argc, char **argv)
 
       }
 			/* free buffer data */
-			opj_free(buf);
+			free(buf);
 			/* free image data */
 			opj_image_destroy(img);
     }
@@ -784,13 +778,14 @@ int main(int argc, char **argv)
   cio_write(cio, offset - mdat_initpos, 4);
   fwrite(buf, 4, 1, mj2file);
   fseek(mj2file,0,SEEK_END);
-  opj_free(buf);
-  
+  free(buf);
+
   // Writing MOOV box 
 	buf = (char*) malloc ((TEMP_BUF+numframes*20) * sizeof(char));
 	cio = opj_cio_open(movie->cinfo, buf, (TEMP_BUF+numframes*20));
 	mj2_write_moov(movie, cio);
   fwrite(buf,cio_tell(cio),1,mj2file);
+  free(buf);
 
 	fprintf(stdout,"Total encoding time: %.2f s for %d frames (%.1f fps)\n", total_time, numframes, (float)numframes/total_time);
   

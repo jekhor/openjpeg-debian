@@ -32,11 +32,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "openjpeg.h"
 #include "compat/getopt.h"
 #include "convert.h"
 #include "dirent.h"
+#include "index.h"
 
 #ifndef WIN32
 #define stricmp strcasecmp
@@ -54,6 +56,8 @@
 #define BMP_DFMT 12
 #define YUV_DFMT 13
 #define TIF_DFMT 14
+#define RAW_DFMT 15
+#define TGA_DFMT 16
 
 /* ----------------------------------------------------------------------- */
 #define CINEMA_24_CS 1302083	/*Codestream length for 24fps*/
@@ -77,7 +81,8 @@ typedef struct img_folder{
 	char set_imgdir;
 	/** Enable Cod Format for output*/
 	char set_out_format;
-
+	/** User specified rate stored in case of cinema option*/
+	float *rates;
 }img_fol_t;
 
 void encode_help_display() {
@@ -97,10 +102,6 @@ void encode_help_display() {
 	fprintf(stdout,"\n");
 	fprintf(stdout,"The markers written to the main_header are : SOC SIZ COD QCD COM.\n");
 	fprintf(stdout,"COD and QCD never appear in the tile_header.\n");
-	fprintf(stdout,"\n");
-	fprintf(stdout,"- This coder can encode a mega image, a test was made on a 24000x24000 pixels \n");
-	fprintf(stdout,"color image.  You need enough disk space memory (twice the original) to encode \n");
-	fprintf(stdout,"the image,i.e. for a 1.5 GB image you need a minimum of 3GB of disk memory)\n");
 	fprintf(stdout,"\n");
 	fprintf(stdout,"By default:\n");
 	fprintf(stdout,"------------\n");
@@ -138,9 +139,9 @@ void encode_help_display() {
 	fprintf(stdout,"-OutFor \n");
 	fprintf(stdout,"    REQUIRED only if -ImgDir is used\n");
 	fprintf(stdout,"	  Need to specify only format without filename <BMP>  \n");
-	fprintf(stdout,"    Currently accepts PGM, PPM, PNM, PGX, BMP format\n");
+	fprintf(stdout,"    Currently accepts PGM, PPM, PNM, PGX, BMP, TIF, RAW and TGA formats\n");
 	fprintf(stdout,"\n");
-	fprintf(stdout,"-i           : source file  (-i source.pnm also *.pgm, *.ppm) \n");
+	fprintf(stdout,"-i           : source file  (-i source.pnm also *.pgm, *.ppm, *.bmp, *.tif, *.raw, *.tga) \n");
 	fprintf(stdout,"    When using this option -o must be used\n");
 	fprintf(stdout,"\n");
 	fprintf(stdout,"-o           : destination file (-o dest.j2k or .jp2) \n");
@@ -149,10 +150,10 @@ void encode_help_display() {
 	fprintf(stdout,"\n");
 	fprintf(stdout,"-h           : display the help information \n ");
 	fprintf(stdout,"\n");
-	fprintf(stdout,"-cinema2k    : Digital Cinema 2K profile compliant codestream for 2K resolution.(-cinema2k 24 or 48) \n");
+	fprintf(stdout,"-cinema2K    : Digital Cinema 2K profile compliant codestream for 2K resolution.(-cinema2k 24 or 48) \n");
   fprintf(stdout,"	  Need to specify the frames per second for a 2K resolution. Only 24 or 48 fps is allowed\n"); 
 	fprintf(stdout,"\n");
-	fprintf(stdout,"-cinema4k    : Digital Cinema 4K profile compliant codestream for 4K resolution \n");
+	fprintf(stdout,"-cinema4K    : Digital Cinema 4K profile compliant codestream for 4K resolution \n");
 	fprintf(stdout,"	  Frames per second not required. Default value is 24fps\n"); 
 	fprintf(stdout,"\n");
 	fprintf(stdout,"-r           : different compression ratios for successive layers (-r 20,10,5)\n ");
@@ -199,7 +200,7 @@ void encode_help_display() {
 	fprintf(stdout,"\n");
 	fprintf(stdout,"-ROI         : c=%%d,U=%%d : quantization indices upshifted \n");
 	fprintf(stdout,"               for component c=%%d [%%d = 0,1,2]\n");
-	fprintf(stdout,"               with a value of U=%%d [0 <= %%d <= 37] (i.e. -ROI:c=0,U=25) \n");
+	fprintf(stdout,"               with a value of U=%%d [0 <= %%d <= 37] (i.e. -ROI c=0,U=25) \n");
 	fprintf(stdout,"\n");
 	fprintf(stdout,"-d           : offset of the origin of the image (-d 150,300) \n");
 	fprintf(stdout,"\n");
@@ -211,31 +212,31 @@ void encode_help_display() {
 #ifdef USE_JPWL
 	fprintf(stdout,"-W           : adoption of JPWL (Part 11) capabilities (-W params)\n");
 	fprintf(stdout,"               The parameters can be written and repeated in any order:\n");
-	fprintf(stdout,"               [h<tile><=type>,s<tile><=method>,a=<addr>,z=<size>,g=<range>,...\n");
-	fprintf(stdout,"                ...,p<tile:pack><=type>]\n");
+	fprintf(stdout,"               [h<tilepart><=type>,s<tilepart><=method>,a=<addr>,...\n");
+	fprintf(stdout,"                ...,z=<size>,g=<range>,p<tilepart:pack><=type>]\n");
 	fprintf(stdout,"\n");
 	fprintf(stdout,"                 h selects the header error protection (EPB): 'type' can be\n");
 	fprintf(stdout,"                   [0=none 1,absent=predefined 16=CRC-16 32=CRC-32 37-128=RS]\n");
-	fprintf(stdout,"                   if 'tile' is absent, it applies to main and tile headers\n");
-	fprintf(stdout,"                   if 'tile' is present, it applies from that tile\n");
-	fprintf(stdout,"                     onwards, up to the next h<tile> spec, or to the last tile\n");
+	fprintf(stdout,"                   if 'tilepart' is absent, it is for main and tile headers\n");
+	fprintf(stdout,"                   if 'tilepart' is present, it applies from that tile\n");
+	fprintf(stdout,"                     onwards, up to the next h<> spec, or to the last tilepart\n");
 	fprintf(stdout,"                     in the codestream (max. %d specs)\n", JPWL_MAX_NO_TILESPECS);
 	fprintf(stdout,"\n");
 	fprintf(stdout,"                 p selects the packet error protection (EEP/UEP with EPBs)\n");
 	fprintf(stdout,"                  to be applied to raw data: 'type' can be\n");
 	fprintf(stdout,"                   [0=none 1,absent=predefined 16=CRC-16 32=CRC-32 37-128=RS]\n");
-	fprintf(stdout,"                   if 'tile:pack' is absent, it starts from tile 0, packet 0\n");
-	fprintf(stdout,"                   if 'tile:pack' is present, it applies from that tile\n");
+	fprintf(stdout,"                   if 'tilepart:pack' is absent, it is from tile 0, packet 0\n");
+	fprintf(stdout,"                   if 'tilepart:pack' is present, it applies from that tile\n");
 	fprintf(stdout,"                     and that packet onwards, up to the next packet spec\n");
-	fprintf(stdout,"                     or to the last packet in the last tile in the codestream\n");
+	fprintf(stdout,"                     or to the last packet in the last tilepart in the stream\n");
 	fprintf(stdout,"                     (max. %d specs)\n", JPWL_MAX_NO_PACKSPECS);
 	fprintf(stdout,"\n");
 	fprintf(stdout,"                 s enables sensitivity data insertion (ESD): 'method' can be\n");
 	fprintf(stdout,"                   [-1=NO ESD 0=RELATIVE ERROR 1=MSE 2=MSE REDUCTION 3=PSNR\n");
 	fprintf(stdout,"                    4=PSNR INCREMENT 5=MAXERR 6=TSE 7=RESERVED]\n");
-	fprintf(stdout,"                   if 'tile' is absent, it applies to main header only\n");
-	fprintf(stdout,"                   if 'tile' is present, it applies from that tile\n");
-	fprintf(stdout,"                     onwards, up to the next s<tile> spec, or to the last tile\n");
+	fprintf(stdout,"                   if 'tilepart' is absent, it is for main header only\n");
+	fprintf(stdout,"                   if 'tilepart' is present, it applies from that tile\n");
+	fprintf(stdout,"                     onwards, up to the next s<> spec, or to the last tilepart\n");
 	fprintf(stdout,"                     in the codestream (max. %d specs)\n", JPWL_MAX_NO_TILESPECS);
 	fprintf(stdout,"\n");
 	fprintf(stdout,"                 g determines the addressing mode: <range> can be\n");
@@ -248,15 +249,16 @@ void encode_help_display() {
 	fprintf(stdout,"                   1/2 bytes, for the transformed pseudo-floating point value\n");
 	fprintf(stdout,"\n");
 	fprintf(stdout,"                 ex.:\n");
-	fprintf(stdout," h,h0=64,h3=16,h5=32,p0=78,p0:24=56,p1,p3:0=0,p3:20=32,s=0,s0=6,s3=-1,a=0,g=1,z=1\n");
+	fprintf(stdout,"                   h,h0=64,h3=16,h5=32,p0=78,p0:24=56,p1,p3:0=0,p3:20=32,s=0,\n");
+	fprintf(stdout,"                     s0=6,s3=-1,a=0,g=1,z=1\n");
 	fprintf(stdout,"                 means\n");
 	fprintf(stdout,"                   predefined EPB in MH, rs(64,32) from TPH 0 to TPH 2,\n");
 	fprintf(stdout,"                   CRC-16 in TPH 3 and TPH 4, CRC-32 in remaining TPHs,\n");
 	fprintf(stdout,"                   UEP rs(78,32) for packets 0 to 23 of tile 0,\n");
-	fprintf(stdout,"                   UEP rs(56,32) for packets 24 to the last of tile 0,\n");
-	fprintf(stdout,"                   UEP rs default for packets of tile 1,\n");
-	fprintf(stdout,"                   no UEP for packets 0 to 19 of tile 3,\n");
-	fprintf(stdout,"                   UEP CRC-32 for packets 20 of tile 3 to last tile,\n");
+	fprintf(stdout,"                   UEP rs(56,32) for packs. 24 to the last of tilepart 0,\n");
+	fprintf(stdout,"                   UEP rs default for packets of tilepart 1,\n");
+	fprintf(stdout,"                   no UEP for packets 0 to 19 of tilepart 3,\n");
+	fprintf(stdout,"                   UEP CRC-32 for packs. 20 of tilepart 3 to last tilepart,\n");
 	fprintf(stdout,"                   relative sensitivity ESD for MH,\n");
 	fprintf(stdout,"                   TSE ESD from TPH 0 to TPH 2, byte range with automatic\n");
 	fprintf(stdout,"                   size of addresses and 1 byte for each sensitivity value\n");
@@ -282,20 +284,28 @@ void encode_help_display() {
 	fprintf(stdout,"Image_height Image_width\n");
 	fprintf(stdout,"progression order\n");
 	fprintf(stdout,"Tiles_size_X Tiles_size_Y\n");
-/* UniPG>> */
 	fprintf(stdout,"Tiles_nb_X Tiles_nb_Y\n");
-/* <<UniPG */
 	fprintf(stdout,"Components_nb\n");
 	fprintf(stdout,"Layers_nb\n");
 	fprintf(stdout,"decomposition_levels\n");
 	fprintf(stdout,"[Precincts_size_X_res_Nr Precincts_size_Y_res_Nr]...\n");
 	fprintf(stdout,"   [Precincts_size_X_res_0 Precincts_size_Y_res_0]\n");
+	fprintf(stdout,"Main_header_start_position\n");
 	fprintf(stdout,"Main_header_end_position\n");
 	fprintf(stdout,"Codestream_size\n");
-	fprintf(stdout,"Tile_0 start_pos end_Theader end_pos TotalDisto NumPix MaxMSE\n");
-	fprintf(stdout,"Tile_1   ''           ''        ''        ''       ''    ''\n");
+	fprintf(stdout,"\n");
+	fprintf(stdout,"INFO ON TILES\n");
+	fprintf(stdout,"tileno start_pos end_hd end_tile nbparts disto nbpix disto/nbpix\n");
+	fprintf(stdout,"Tile_0 start_pos end_Theader end_pos NumParts TotalDisto NumPix MaxMSE\n");
+	fprintf(stdout,"Tile_1   ''           ''        ''        ''       ''    ''      ''\n");
 	fprintf(stdout,"...\n");
-	fprintf(stdout,"Tile_Nt   ''           ''        ''        ''       ''    ''\n");
+	fprintf(stdout,"Tile_Nt   ''           ''        ''        ''       ''    ''     ''\n");
+	fprintf(stdout,"...\n");
+	fprintf(stdout,"TILE 0 DETAILS\n");
+	fprintf(stdout,"part_nb tileno num_packs start_pos end_tph_pos end_pos\n");
+	fprintf(stdout,"...\n");
+	fprintf(stdout,"Progression_string\n");
+	fprintf(stdout,"pack_nb tileno layno resno compno precno start_pos end_ph_pos end_pos disto\n");
 	fprintf(stdout,"Tpacket_0 Tile layer res. comp. prec. start_pos end_pos disto\n");
 	fprintf(stdout,"...\n");
 	fprintf(stdout,"Tpacket_Np ''   ''    ''   ''    ''       ''       ''     ''\n");
@@ -375,10 +385,10 @@ int load_images(dircnt_t *dirptr, char *imgdirpath){
 int get_file_format(char *filename) {
 	unsigned int i;
 	static const char *extension[] = {
-    "pgx", "pnm", "pgm", "ppm", "bmp","tif", "j2k", "jp2", "j2c"
+    "pgx", "pnm", "pgm", "ppm", "bmp", "tif", "raw", "tga", "j2k", "jp2", "j2c"
     };
 	static const int format[] = {
-    PGX_DFMT, PXM_DFMT, PXM_DFMT, PXM_DFMT, BMP_DFMT,TIF_DFMT, J2K_CFMT, JP2_CFMT, J2K_CFMT
+    PGX_DFMT, PXM_DFMT, PXM_DFMT, PXM_DFMT, BMP_DFMT, TIF_DFMT, RAW_DFMT, TGA_DFMT, J2K_CFMT, JP2_CFMT, J2K_CFMT
     };
 	char * ext = strrchr(filename, '.');
 	if (ext == NULL)
@@ -389,7 +399,6 @@ int get_file_format(char *filename) {
 			return format[i];
 		}
 	}
-
 	return -1;
 }
 
@@ -402,6 +411,7 @@ char * get_file_name(char *name){
 
 char get_next_file(int imageno,dircnt_t *dirptr,img_fol_t *img_fol, opj_cparameters_t *parameters){
 	char image_filename[OPJ_PATH_LEN], infilename[OPJ_PATH_LEN],outfilename[OPJ_PATH_LEN],temp_ofname[OPJ_PATH_LEN];
+  char *temp_p, temp1[OPJ_PATH_LEN]="";
 
 	strcpy(image_filename,dirptr->filename[imageno]);
 	fprintf(stderr,"File Number %d \"%s\"\n",imageno,image_filename);
@@ -413,6 +423,10 @@ char get_next_file(int imageno,dircnt_t *dirptr,img_fol_t *img_fol, opj_cparamet
 
 	//Set output file
 	strcpy(temp_ofname,get_file_name(image_filename));
+	while((temp_p = strtok(NULL,".")) != NULL){
+		strcat(temp_ofname,temp1);
+		sprintf(temp1,".%s",temp_p);
+	}
 	if(img_fol->set_out_format==1){
 		sprintf(outfilename,"%s/%s.%s",img_fol->imgdirpath,temp_ofname,img_fol->out_format);
 		strncpy(parameters->outfile, outfilename, sizeof(outfilename));
@@ -471,7 +485,7 @@ void cinema_parameters(opj_cparameters_t *parameters){
 
 }
 
-void cinema_setup_encoder(opj_cparameters_t *parameters,opj_image_t *image){
+void cinema_setup_encoder(opj_cparameters_t *parameters,opj_image_t *image, img_fol_t *img_fol){
 	int i;
 	float temp_rate;
 	opj_poc_t *POC = NULL;
@@ -483,7 +497,9 @@ void cinema_setup_encoder(opj_cparameters_t *parameters,opj_image_t *image){
 			parameters->numresolution = 6;
 		}
 		if (!((image->comps[0].w == 2048) | (image->comps[0].h == 1080))){
-			fprintf(stdout,"Image coordinates %d x %d is not 2K compliant.\nJPEG Digital Cinema Profile-3 (2K profile) compliance requires that at least one of coordinates match 2048 x 1080\n",image->comps[0].w,image->comps[0].h);
+			fprintf(stdout,"Image coordinates %d x %d is not 2K compliant.\nJPEG Digital Cinema Profile-3 "
+				"(2K profile) compliance requires that at least one of coordinates match 2048 x 1080\n",
+				image->comps[0].w,image->comps[0].h);
 			parameters->cp_rsiz = STD_RSIZ;
 		}
 	break;
@@ -495,7 +511,9 @@ void cinema_setup_encoder(opj_cparameters_t *parameters,opj_image_t *image){
 				parameters->numresolution = 7;
 			}
 		if (!((image->comps[0].w == 4096) | (image->comps[0].h == 2160))){
-			fprintf(stdout,"Image coordinates %d x %d is not 4K compliant.\nJPEG Digital Cinema Profile-4 (4K profile) compliance requires that atleast one of coordinates match 4096 x 2160\n",image->comps[0].w,image->comps[0].h);
+			fprintf(stdout,"Image coordinates %d x %d is not 4K compliant.\nJPEG Digital Cinema Profile-4" 
+				"(4K profile) compliance requires that at least one of coordinates match 4096 x 2160\n",
+				image->comps[0].w,image->comps[0].h);
 			parameters->cp_rsiz = STD_RSIZ;
 		}
 		parameters->numpocs = initialise_4K_poc(parameters->POC,parameters->numresolution);
@@ -505,17 +523,19 @@ void cinema_setup_encoder(opj_cparameters_t *parameters,opj_image_t *image){
 	switch (parameters->cp_cinema){
 		case CINEMA2K_24:
 		case CINEMA4K_24:
-			for(i=0;i<parameters->tcp_numlayers;i++){
+			for(i=0 ; i<parameters->tcp_numlayers ; i++){
 				temp_rate = 0 ;
-				if (parameters->tcp_rates[i]== 0){
+				if (img_fol->rates[i]== 0){
 					parameters->tcp_rates[0]= ((float) (image->numcomps * image->comps[0].w * image->comps[0].h * image->comps[0].prec))/ 
 					(CINEMA_24_CS * 8 * image->comps[0].dx * image->comps[0].dy);
 				}else{
 					temp_rate =((float) (image->numcomps * image->comps[0].w * image->comps[0].h * image->comps[0].prec))/ 
-						(parameters->tcp_rates[i] * 8 * image->comps[0].dx * image->comps[0].dy);
+						(img_fol->rates[i] * 8 * image->comps[0].dx * image->comps[0].dy);
 					if (temp_rate > CINEMA_24_CS ){
 						parameters->tcp_rates[i]= ((float) (image->numcomps * image->comps[0].w * image->comps[0].h * image->comps[0].prec))/ 
-																				(CINEMA_24_CS * 8 * image->comps[0].dx * image->comps[0].dy);
+						(CINEMA_24_CS * 8 * image->comps[0].dx * image->comps[0].dy);
+					}else{
+						parameters->tcp_rates[i]= img_fol->rates[i];
 					}
 				}
 			}
@@ -523,17 +543,19 @@ void cinema_setup_encoder(opj_cparameters_t *parameters,opj_image_t *image){
 			break;
 		
 		case CINEMA2K_48:
-     	for(i=0;i<parameters->tcp_numlayers;i++){
+			for(i=0 ; i<parameters->tcp_numlayers ; i++){
 				temp_rate = 0 ;
-				if (parameters->tcp_rates[i]== 0){
+				if (img_fol->rates[i]== 0){
 					parameters->tcp_rates[0]= ((float) (image->numcomps * image->comps[0].w * image->comps[0].h * image->comps[0].prec))/ 
 					(CINEMA_48_CS * 8 * image->comps[0].dx * image->comps[0].dy);
 				}else{
 					temp_rate =((float) (image->numcomps * image->comps[0].w * image->comps[0].h * image->comps[0].prec))/ 
-						(parameters->tcp_rates[i] * 8 * image->comps[0].dx * image->comps[0].dy);
+						(img_fol->rates[i] * 8 * image->comps[0].dx * image->comps[0].dy);
 					if (temp_rate > CINEMA_48_CS ){
 						parameters->tcp_rates[0]= ((float) (image->numcomps * image->comps[0].w * image->comps[0].h * image->comps[0].prec))/ 
-																				(CINEMA_48_CS * 8 * image->comps[0].dx * image->comps[0].dy);
+						(CINEMA_48_CS * 8 * image->comps[0].dx * image->comps[0].dy);
+					}else{
+						parameters->tcp_rates[i]= img_fol->rates[i];
 					}
 				}
 			}
@@ -545,7 +567,8 @@ void cinema_setup_encoder(opj_cparameters_t *parameters,opj_image_t *image){
 
 /* ------------------------------------------------------------------------------------ */
 
-int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,img_fol_t *img_fol) {
+int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,
+													img_fol_t *img_fol, raw_cparameters_t *raw_cp, char *indexfilename) {
 	int i, j,totlen;
 	option_t long_option[]={
 		{"cinema2K",REQ_ARG, NULL ,'w'},
@@ -556,11 +579,11 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 		{"EPH",NO_ARG, NULL ,'E'},
 		{"OutFor",REQ_ARG, NULL ,'O'},
 		{"POC",REQ_ARG, NULL ,'P'},
+		{"ROI",REQ_ARG, NULL ,'R'},
 	};
 
 	/* parse the command line */
-/* UniPG>> */
-	const char optlist[] = "i:o:hr:q:n:b:c:t:p:s:SEM:x:R:d:T:If:P:C:"
+	const char optlist[] = "i:o:hr:q:n:b:c:t:p:s:SEM:x:R:d:T:If:P:C:F:"
 #ifdef USE_JPWL
 		"W:"
 #endif /* USE_JPWL */
@@ -568,10 +591,10 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 
 	totlen=sizeof(long_option);
 	img_fol->set_out_format=0;
+	raw_cp->rawWidth = 0;
 
 	while (1) {
     int c = getopt_long(argc, argv, optlist,long_option,totlen);
-/* <<UniPG */
 		if (c == -1)
 			break;
 		switch (c) {
@@ -584,11 +607,13 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 					case PXM_DFMT:
 					case BMP_DFMT:
 					case TIF_DFMT:
+					case RAW_DFMT:
+					case TGA_DFMT:
 						break;
 					default:
 						fprintf(stderr,
 							"!! Unrecognized format for infile : %s "
-              "[accept only *.pnm, *.pgm, *.ppm, *.pgx, *.bmp or *.tif] !!\n\n", 
+              "[accept only *.pnm, *.pgm, *.ppm, *.pgx, *.bmp, *.tif, *.raw or *.tga] !!\n\n", 
 							infile);
 						return 1;
 				}
@@ -607,7 +632,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 					case JP2_CFMT:
 						break;
 					default:
-						fprintf(stderr, "Unknown output format image %s [only *.j2k, *.jp2]!! \n", outfile);
+						fprintf(stderr, "Unknown output format image %s [only *.j2k, *.j2c or *.jp2]!! \n", outfile);
 						return 1;
 				}
 				strncpy(parameters->outfile, outfile, sizeof(parameters->outfile)-1);
@@ -628,7 +653,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 							img_fol->out_format = optarg;
 							break;
 						default:
-							fprintf(stderr, "Unknown output format image [only j2k, jp2]!! \n");
+							fprintf(stderr, "Unknown output format image [only j2k, j2c, jp2]!! \n");
 							return 1;
 					}
 				}
@@ -651,6 +676,41 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 					s++;
 				}
 				parameters->cp_disto_alloc = 1;
+			}
+			break;
+
+				/* ----------------------------------------------------- */
+
+			
+			case 'F':			/* Raw image format parameters */
+			{
+				char signo;
+				char *s = optarg;
+				if (sscanf(s, "%d,%d,%d,%d,%c", &raw_cp->rawWidth, &raw_cp->rawHeight, &raw_cp->rawComp, &raw_cp->rawBitDepth, &signo) == 5) {
+					if (signo == 's') {
+						raw_cp->rawSigned = true;
+						fprintf(stdout,"\nRaw file parameters: %d,%d,%d,%d Signed\n", raw_cp->rawWidth, raw_cp->rawHeight, raw_cp->rawComp, raw_cp->rawBitDepth);
+					}
+					else if (signo == 'u') {
+						raw_cp->rawSigned = false;
+						fprintf(stdout,"\nRaw file parameters: %d,%d,%d,%d Unsigned\n", raw_cp->rawWidth, raw_cp->rawHeight, raw_cp->rawComp, raw_cp->rawBitDepth);
+					}
+					else {
+						fprintf(stderr,"\nError: invalid raw image parameters: Unknown sign of raw file\n");
+						fprintf(stderr,"Please use the Format option -F:\n");
+						fprintf(stderr,"-F rawWidth,rawHeight,rawComp,rawBitDepth,s/u (Signed/Unsigned)\n");
+						fprintf(stderr,"Example: -i lena.raw -o lena.j2k -F 512,512,3,8,u\n");
+						fprintf(stderr,"Aborting\n");
+					}					
+				}
+				else {
+					fprintf(stderr,"\nError: invalid raw image parameters\n");
+					fprintf(stderr,"Please use the Format option -F:\n");
+					fprintf(stderr,"-F rawWidth,rawHeight,rawComp,rawBitDepth,s/u (Signed/Unsigned)\n");
+						fprintf(stderr,"Example: -i lena.raw -o lena.j2k -F 512,512,3,8,u\n");
+					fprintf(stderr,"Aborting\n");
+					return 1;
+				}
 			}
 			break;
 
@@ -780,8 +840,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 			case 'x':			/* creation of index file */
 			{
 				char *index = optarg;
-				strncpy(parameters->index, index, sizeof(parameters->index)-1);
-				parameters->index_on = 1;
+				strncpy(indexfilename, index, OPJ_PATH_LEN);
 			}
 			break;
 
@@ -895,9 +954,9 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 
 			case 'R':			/* ROI */
 			{
-				if (sscanf(optarg, "OI:c=%d,U=%d", &parameters->roi_compno,
+				if (sscanf(optarg, "c=%d,U=%d", &parameters->roi_compno,
                                            &parameters->roi_shift) != 2) {
-					fprintf(stderr, "ROI error !! [-ROI:c='compno',U='shift']\n");
+					fprintf(stderr, "ROI error !! [-ROI c='compno',U='shift']\n");
 					return 1;
 				}
 			}
@@ -995,9 +1054,8 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 				int hprot, pprot, sens, addr, size, range;
 
 				/* we need to enable indexing */
-				if (!parameters->index_on) {
-					strncpy(parameters->index, JPWL_PRIVATEINDEX_NAME, sizeof(parameters->index)-1);
-					parameters->index_on = 1;
+				if (!indexfilename) {
+					strncpy(indexfilename, JPWL_PRIVATEINDEX_NAME, OPJ_PATH_LEN);
 				}
 
 				/* search for different protection methods */
@@ -1026,11 +1084,11 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 							/* Tile part header, specified */
 							if (!((hprot == 0) || (hprot == 1) || (hprot == 16) || (hprot == 32) ||
 								((hprot >= 37) && (hprot <= 128)))) {
-								fprintf(stderr, "ERROR -> invalid tile header protection method h = %d\n", hprot);
+								fprintf(stderr, "ERROR -> invalid tile part header protection method h = %d\n", hprot);
 								return 1;
 							}
 							if (tile < 0) {
-								fprintf(stderr, "ERROR -> invalid tile number on protection method t = %d\n", tile);
+								fprintf(stderr, "ERROR -> invalid tile part number on protection method t = %d\n", tile);
 								return 1;
 							}
 							if (tilespec < JPWL_MAX_NO_TILESPECS) {
@@ -1041,7 +1099,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 						} else if(sscanf(token, "h%d", &tile) == 1) {
 							/* Tile part header, unspecified */
 							if (tile < 0) {
-								fprintf(stderr, "ERROR -> invalid tile number on protection method t = %d\n", tile);
+								fprintf(stderr, "ERROR -> invalid tile part number on protection method t = %d\n", tile);
 								return 1;
 							}
 							if (tilespec < JPWL_MAX_NO_TILESPECS) {
@@ -1087,7 +1145,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 								return 1;
 							}
 							if (tile < 0) {
-								fprintf(stderr, "ERROR -> invalid tile number on protection method p = %d\n", tile);
+								fprintf(stderr, "ERROR -> invalid tile part number on protection method p = %d\n", tile);
 								return 1;
 							}
 							if (packspec < JPWL_MAX_NO_PACKSPECS) {
@@ -1104,7 +1162,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 								return 1;
 							}
 							if (tile < 0) {
-								fprintf(stderr, "ERROR -> invalid tile number on protection method p = %d\n", tile);
+								fprintf(stderr, "ERROR -> invalid tile part number on protection method p = %d\n", tile);
 								return 1;
 							}
 							if (pack < 0) {
@@ -1125,7 +1183,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 								return 1;
 							}
 							if (tile < 0) {
-								fprintf(stderr, "ERROR -> invalid tile number on protection method p = %d\n", tile);
+								fprintf(stderr, "ERROR -> invalid tile part number on protection method p = %d\n", tile);
 								return 1;
 							}
 							if (pack < 0) {
@@ -1141,7 +1199,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 						} else if (sscanf(token, "p%d", &tile) == 1) {
 							/* default from a tile on */
 							if (tile < 0) {
-								fprintf(stderr, "ERROR -> invalid tile number on protection method p = %d\n", tile);
+								fprintf(stderr, "ERROR -> invalid tile part number on protection method p = %d\n", tile);
 								return 1;
 							}
 							if (packspec < JPWL_MAX_NO_PACKSPECS) {
@@ -1182,11 +1240,11 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 						} else if(sscanf(token, "s%d=%d", &tile, &sens) == 2) {
 							/* Tile part header, specified */
 							if ((sens < -1) || (sens > 7)) {
-								fprintf(stderr, "ERROR -> invalid tile header sensitivity method s = %d\n", sens);
+								fprintf(stderr, "ERROR -> invalid tile part header sensitivity method s = %d\n", sens);
 								return 1;
 							}
 							if (tile < 0) {
-								fprintf(stderr, "ERROR -> invalid tile number on sensitivity method t = %d\n", tile);
+								fprintf(stderr, "ERROR -> invalid tile part number on sensitivity method t = %d\n", tile);
 								return 1;
 							}
 							if (tilespec < JPWL_MAX_NO_TILESPECS) {
@@ -1197,7 +1255,7 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 						} else if(sscanf(token, "s%d", &tile) == 1) {
 							/* Tile part header, unspecified */
 							if (tile < 0) {
-								fprintf(stderr, "ERROR -> invalid tile number on sensitivity method t = %d\n", tile);
+								fprintf(stderr, "ERROR -> invalid tile part number on sensitivity method t = %d\n", tile);
 								return 1;
 							}
 							if (tilespec < JPWL_MAX_NO_TILESPECS) {
@@ -1348,6 +1406,15 @@ int parse_cmdline_encoder(int argc, char **argv, opj_cparameters_t *parameters,i
 		}
 	}
 
+	if (parameters->decod_format == RAW_DFMT && raw_cp->rawWidth == 0) {
+			fprintf(stderr,"\nError: invalid raw image parameters\n");
+			fprintf(stderr,"Please use the Format option -F:\n");
+			fprintf(stderr,"-F rawWidth,rawHeight,rawComp,rawBitDepth,s/u (Signed/Unsigned)\n");
+						fprintf(stderr,"Example: -i lena.raw -o lena.j2k -F 512,512,3,8,u\n");
+			fprintf(stderr,"Aborting\n");
+			return 1;
+	}
+
 	if ((parameters->cp_disto_alloc || parameters->cp_fixed_alloc || parameters->cp_fixed_quality)
 		&& (!(parameters->cp_disto_alloc ^ parameters->cp_fixed_alloc ^ parameters->cp_fixed_quality))) {
 		fprintf(stderr, "Error: options -r -q and -f cannot be used together !!\n");
@@ -1414,6 +1481,9 @@ int main(int argc, char **argv) {
 	int i,num_images;
 	int imageno;
 	dircnt_t *dirptr;
+	raw_cparameters_t raw_cp;
+	opj_codestream_info_t cstr_info;		/* Codestream information structure */
+	char indexfilename[OPJ_PATH_LEN];	/* index file name */
 
 	/*
 	configure the event callbacks (not required)
@@ -1427,15 +1497,22 @@ int main(int argc, char **argv) {
 	/* set encoding parameters to default values */
 	opj_set_default_encoder_parameters(&parameters);
 
+	/* Initialize indexfilename and img_fol */
+	*indexfilename = 0;
+	memset(&img_fol,0,sizeof(img_fol_t));
+
 	/* parse input and get user encoding parameters */
-	if(parse_cmdline_encoder(argc, argv, &parameters,&img_fol) == 1) {
-		return 0;
+	if(parse_cmdline_encoder(argc, argv, &parameters,&img_fol, &raw_cp, indexfilename) == 1) {
+		return 1;
 	}
 	
 	if (parameters.cp_cinema){
+		img_fol.rates = (float*)malloc(parameters.tcp_numlayers * sizeof(float));
+		for(i=0; i< parameters.tcp_numlayers; i++){
+			img_fol.rates[i] = parameters.tcp_rates[i];
+		}
 		cinema_parameters(&parameters);
-	}
-				
+	}				
 
 	/* Create comment for codestream */
 	if(parameters.cp_comment == NULL) {
@@ -1451,19 +1528,15 @@ int main(int argc, char **argv) {
 		sprintf(parameters.cp_comment,"%s%s", comment, version);
 #endif
 /* <<UniPG */
-
 	}
 
 	/* Read directory if necessary */
-
 	if(img_fol.set_imgdir==1){
 		num_images=get_num_images(img_fol.imgdirpath);
-
 		dirptr=(dircnt_t*)malloc(sizeof(dircnt_t));
 		if(dirptr){
 			dirptr->filename_buf = (char*)malloc(num_images*OPJ_PATH_LEN*sizeof(char));	// Stores at max 10 image file names
 			dirptr->filename = (char**) malloc(num_images*sizeof(char*));
-
 			if(!dirptr->filename_buf){
 				return 0;
 			}
@@ -1482,13 +1555,10 @@ int main(int argc, char **argv) {
 		num_images=1;
 	}
 	/*Encoding image one by one*/
-	for(imageno=0;imageno<num_images;imageno++)
-	{
-
+	for(imageno=0;imageno<num_images;imageno++)	{
 		image = NULL;
 		fprintf(stderr,"\n");
 		
-
 		if(img_fol.set_imgdir==1){
 			if (get_next_file(imageno, dirptr,&img_fol, &parameters)) {
 				fprintf(stderr,"skipping file...\n");
@@ -1504,7 +1574,10 @@ int main(int argc, char **argv) {
 				break;
 			case TIF_DFMT:
 				break;
-		
+			case RAW_DFMT:
+				break;
+			case TGA_DFMT:
+				break;
 			default:
 				fprintf(stderr,"skipping file...\n");
 				continue;			
@@ -1545,12 +1618,28 @@ int main(int argc, char **argv) {
 						return 1;
 					}
 				break;
+
+				case RAW_DFMT:
+					image = rawtoimage(parameters.infile, &parameters, &raw_cp);
+					if (!image) {
+						fprintf(stderr, "Unable to load raw file\n");
+						return 1;
+					}
+				break;
+
+				case TGA_DFMT:
+					image = tgatoimage(parameters.infile, &parameters);
+					if (!image) {
+						fprintf(stderr, "Unable to load tga file\n");
+						return 1;
+					}
+				break;
 		}
 			/* Decide if MCT should be used */
 			parameters.tcp_mct = image->numcomps == 3 ? 1 : 0;
 
 			if(parameters.cp_cinema){
-				cinema_setup_encoder(&parameters,image);
+				cinema_setup_encoder(&parameters,image,&img_fol);
 			}
 
 			/* encode the destination image */
@@ -1575,7 +1664,10 @@ int main(int argc, char **argv) {
 				cio = opj_cio_open((opj_common_ptr)cinfo, NULL, 0);
 
 				/* encode the image */
-				bSuccess = opj_encode(cinfo, cio, image, parameters.index);
+				if (*indexfilename)					// If need to extract codestream information
+					bSuccess = opj_encode_with_info(cinfo, cio, image, &cstr_info);
+				else
+					bSuccess = opj_encode(cinfo, cio, image, NULL);
 				if (!bSuccess) {
 					opj_cio_close(cio);
 					fprintf(stderr, "failed to encode image\n");
@@ -1596,9 +1688,18 @@ int main(int argc, char **argv) {
 				/* close and free the byte stream */
 				opj_cio_close(cio);
 
+				/* Write the index to disk */
+				if (*indexfilename) {
+					bSuccess = write_index_file(&cstr_info, indexfilename);
+					if (bSuccess) {
+						fprintf(stderr, "Failed to output index file into [%s]\n", indexfilename);
+					}
+				}
+
 				/* free remaining compression structures */
 				opj_destroy_compress(cinfo);
-
+				if (*indexfilename)
+					opj_destroy_cstr_info(&cstr_info);
 			} else {			/* JP2 format output */
 				int codestream_length;
 				opj_cio_t *cio = NULL;
@@ -1618,7 +1719,10 @@ int main(int argc, char **argv) {
 				cio = opj_cio_open((opj_common_ptr)cinfo, NULL, 0);
 
 				/* encode the image */
-				bSuccess = opj_encode(cinfo, cio, image, parameters.index);
+				if (*indexfilename)					// If need to extract codestream information
+					bSuccess = opj_encode_with_info(cinfo, cio, image, &cstr_info);
+				else
+					bSuccess = opj_encode(cinfo, cio, image, NULL);
 				if (!bSuccess) {
 					opj_cio_close(cio);
 					fprintf(stderr, "failed to encode image\n");
@@ -1637,10 +1741,19 @@ int main(int argc, char **argv) {
 				fprintf(stderr,"Generated outfile %s\n",parameters.outfile);
 				/* close and free the byte stream */
 				opj_cio_close(cio);
+				
+				/* Write the index to disk */
+				if (*indexfilename) {
+					bSuccess = write_index_file(&cstr_info, indexfilename);
+					if (bSuccess) {
+						fprintf(stderr, "Failed to output index file\n");
+					}
+				}
 
 				/* free remaining compression structures */
 				opj_destroy_compress(cinfo);
-
+				if (*indexfilename)
+					opj_destroy_cstr_info(&cstr_info);
 			}
 	
 			/* free image data */
@@ -1653,4 +1766,3 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
-

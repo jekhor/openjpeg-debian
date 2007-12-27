@@ -7,8 +7,7 @@
 # For this purpose you can define a CMake var: OPENJPEG_NAMESPACE to whatever you like
 # e.g.:
 # SET(OPENJPEG_NAMESPACE "GDCMOPENJPEG")
-PROJECT(OPENJPEG C)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.2)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
 
 IF(NOT OPENJPEG_NAMESPACE)
   SET(OPENJPEG_NAMESPACE "OPENJPEG")
@@ -17,22 +16,36 @@ ENDIF(NOT OPENJPEG_NAMESPACE)
 # In all cases:
 STRING(TOLOWER ${OPENJPEG_NAMESPACE} OPENJPEG_LIBRARY_NAME)
 
-PROJECT(${JPEG_NAMESPACE} C)
+PROJECT(${OPENJPEG_NAMESPACE} C)
 
 # Do full dependency headers.
 INCLUDE_REGULAR_EXPRESSION("^.*$")
 
 #-----------------------------------------------------------------------------
-# OPENJPEG version number, usefull for packaging and doxygen doc:
-SET(OPENJPEG_MAJOR_VERSION 1)
-SET(OPENJPEG_MINOR_VERSION 0)
-SET(OPENJPEG_BUILD_VERSION 0)
+# OPENJPEG version number, useful for packaging and doxygen doc:
+SET(OPENJPEG_VERSION_MAJOR 1)
+SET(OPENJPEG_VERSION_MINOR 3)
+SET(OPENJPEG_VERSION_BUILD 0)
 SET(OPENJPEG_VERSION
-  "${OPENJPEG_MAJOR_VERSION}.${OPENJPEG_MINOR_VERSION}.${OPENJPEG_BUILD_VERSION}")
+  "${OPENJPEG_VERSION_MAJOR}.${OPENJPEG_VERSION_MINOR}.${OPENJPEG_VERSION_BUILD}")
+
+# This setting of SOVERSION assumes that any API change
+# will increment either the minor or major version number of openjpeg
+SET(OPENJPEG_LIBRARY_PROPERTIES
+  VERSION   "${OPENJPEG_VERSION_MAJOR}.${OPENJPEG_VERSION_MINOR}.${OPENJPEG_VERSION_BUILD}"
+  SOVERSION "${OPENJPEG_VERSION_MAJOR}.${OPENJPEG_VERSION_MINOR}"
+)
+
 
 #-----------------------------------------------------------------------------
 # OpenJPEG build configuration options.
 OPTION(BUILD_SHARED_LIBS "Build OpenJPEG with shared libraries." OFF)
+
+#-----------------------------------------------------------------------------
+SET (EXECUTABLE_OUTPUT_PATH ${OPENJPEG_BINARY_DIR}/bin CACHE PATH "Single output directory for building all executables.")
+SET (LIBRARY_OUTPUT_PATH ${OPENJPEG_BINARY_DIR}/bin CACHE PATH "Single output directory for building all libraries.")
+MARK_AS_ADVANCED(LIBRARY_OUTPUT_PATH EXECUTABLE_OUTPUT_PATH)
+
 
 #-----------------------------------------------------------------------------
 # For the codec...
@@ -53,7 +66,19 @@ ENDIF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/openjpeg_mangle.h.in)
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_BINARY_DIR})
 SUBDIRS(
   libopenjpeg
+  mj2
+  # cmake 2.4.5 has poor java support
+  #j2kviewer/src
   )
+
+IF(NOT UNIX)
+SUBDIRS(
+  jpwl
+  jp3d
+  indexer_JPIP
+  )
+ENDIF(NOT UNIX)
+
 #-----------------------------------------------------------------------------
 # Build example only if requested
 IF(BUILD_EXAMPLES)
@@ -61,8 +86,15 @@ IF(BUILD_EXAMPLES)
 ENDIF(BUILD_EXAMPLES)
 
 #-----------------------------------------------------------------------------
+# For the documentation
+OPTION(BUILD_DOCUMENTATION "Build the doxygen documentation" OFF)
+IF(BUILD_DOCUMENTATION)
+  SUBDIRS(doc)
+ENDIF(BUILD_DOCUMENTATION)
+
+#-----------------------------------------------------------------------------
 # For openjpeg team if they ever want Dart+CMake
-IF(OPJ_STANDALONE)
+IF(OPENJPEG_STANDALONE)
   INCLUDE(Dart)
   MARK_AS_ADVANCED(BUILD_TESTING DART_ROOT TCL_TCLSH)
   IF(BUILD_TESTING)
@@ -70,8 +102,25 @@ IF(OPJ_STANDALONE)
     SET(BUILDNAME "OpenJPEG-${CMAKE_SYSTEM}-${CMAKE_C_COMPILER}" CACHE STRING "Name of build on the dashboard")
     MARK_AS_ADVANCED(BUILDNAME)
   ENDIF(BUILD_TESTING)
-ENDIF(OPJ_STANDALONE)
+ENDIF(OPENJPEG_STANDALONE)
 
-# TODO, technically we should add tests, e.g:
+# Adding test with dataset from:
 # http://www.crc.ricoh.com/~gormish/jpeg2000conformance/
+# http://www.jpeg.org/jpeg2000guide/testimages/testimages.html
+
+#-----------------------------------------------------------------------------
+# Adding JPEG2000_CONFORMANCE_DATA_ROOT
+FIND_PATH(JPEG2000_CONFORMANCE_DATA_ROOT testimages.html
+  ${OPENJPEG_SOURCE_DIR}/../jpeg2000testimages
+  $ENV{JPEG2000_CONFORMANCE_DATA_ROOT}
+)
+
+#-----------------------------------------------------------------------------
+# Compiler specific flags:
+IF(CMAKE_COMPILER_IS_GNUCC)
+  # For all builds, make sure openjpeg is std99 compliant:
+  SET(CMAKE_C_FLAGS "-Wall -std=c99 ${CMAKE_C_FLAGS}")
+  # Do not use ffast-math for all build, it would produce incorrect results, only set for release:
+  SET(CMAKE_C_FLAGS_RELEASE "-ffast-math ${CMAKE_C_FLAGS_RELEASE}")
+ENDIF(CMAKE_COMPILER_IS_GNUCC)
 

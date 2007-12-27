@@ -31,8 +31,28 @@
 #ifndef __J2K_CONVERT_H
 #define __J2K_CONVERT_H
 
-opj_image_t* bmptoimage(const char *filename, opj_cparameters_t *parameters);
+/**@name RAW image encoding parameters */
+/*@{*/
+typedef struct raw_cparameters {
+	/** width of the raw image */
+	int rawWidth;
+	/** height of the raw image */
+	int rawHeight;
+	/** components of the raw image */
+	int rawComp;
+	/** bit depth of the raw image */
+	int rawBitDepth;
+	/** signed/unsigned raw image */
+	bool rawSigned;
+	/*@}*/
+} raw_cparameters_t;
 
+/* TGA conversion */
+opj_image_t* tgatoimage(const char *filename, opj_cparameters_t *parameters);
+int imagetotga(opj_image_t * image, const char *outfile);
+
+/* BMP conversion */
+opj_image_t* bmptoimage(const char *filename, opj_cparameters_t *parameters);
 int imagetobmp(opj_image_t *image, const char *outfile);
 
 /* TIFF to image conversion*/
@@ -45,12 +65,14 @@ Load a single image component encoded in PGX file format
 @return Returns a greyscale image if successful, returns NULL otherwise
 */
 opj_image_t* pgxtoimage(const char *filename, opj_cparameters_t *parameters);
-
 int imagetopgx(opj_image_t *image, const char *outfile);
 
 opj_image_t* pnmtoimage(const char *filename, opj_cparameters_t *parameters);
-
 int imagetopnm(opj_image_t *image, const char *outfile);
+
+/* RAW conversion */
+int imagetoraw(opj_image_t * image, const char *outfile);
+opj_image_t* rawtoimage(const char *filename, opj_cparameters_t *parameters, raw_cparameters_t *raw_cp);
 
 #endif /* __J2K_CONVERT_H */
 

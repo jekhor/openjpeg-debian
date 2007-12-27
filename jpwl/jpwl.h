@@ -206,6 +206,14 @@ typedef struct jpwl_marker {
 }	jpwl_marker_t;
 
 /**
+Encode according to JPWL specs
+@param j2k J2K handle
+@param cio codestream handle
+@param image image handle
+*/
+void jpwl_encode(opj_j2k_t *j2k, opj_cio_t *cio, opj_image_t *image);
+
+/**
 Prepare the list of JPWL markers, after the Part 1 codestream
 has been finalized (index struct is full)
 @param j2k J2K handle
@@ -227,6 +235,7 @@ Read the EPC marker (Error Protection Capability)
 @param j2k J2K handle
 */
 void j2k_read_epc(opj_j2k_t *j2k);
+
 /**
 Write the EPC marker (Error Protection Capability), BUT the DL field is always set to 0
 (this simplifies the management of EPBs and it is openly stated in the standard
@@ -235,21 +244,25 @@ are not yet implemented
 @param j2k J2K handle
 */
 void j2k_write_epc(opj_j2k_t *j2k);
+
 /**
 Read the EPB marker (Error Protection Block)
 @param j2k J2K handle
 */
 void j2k_read_epb(opj_j2k_t *j2k);
+
 /**
 Write the EPB marker (Error Protection Block)
 @param j2k J2K handle
 */
 void j2k_write_epb(opj_j2k_t *j2k);
+
 /**
 Read the ESD marker (Error Sensitivity Descriptor)
 @param j2k J2K handle
 */
 void j2k_read_esd(opj_j2k_t *j2k);
+
 /**
 Read the RED marker (Residual Error Descriptor)
 @param j2k J2K handle
@@ -321,6 +334,8 @@ bool jpwl_esd_fill(opj_j2k_t *j2k, jpwl_esd_ms_t *esdmark, unsigned char *buf);
 
 bool jpwl_epb_fill(opj_j2k_t *j2k, jpwl_epb_ms_t *epbmark, unsigned char *buf, unsigned char *post_buf);
 
+void j2k_add_marker(opj_codestream_info_t *cstr_info, unsigned short int type, int pos, int len);
+
 /** corrects the data in the JPWL codestream
 @param j2k J2K compressor handle
 @return true if correction is performed correctly
@@ -378,6 +393,33 @@ Computes the minimum between two integers
 /*@}*/
 
 #endif /* USE_JPWL */
+
+#ifdef USE_JPSEC
+
+/** @defgroup JPSEC JPSEC - JPEG-2000 Part 8 (JPSEC) codestream manager */
+/*@{*/
+
+/**
+Read the SEC marker (SEcured Codestream)
+@param j2k J2K handle
+*/
+void j2k_read_sec(opj_j2k_t *j2k);
+
+/**
+Write the SEC marker (SEcured Codestream)
+@param j2k J2K handle
+*/
+void j2k_write_sec(opj_j2k_t *j2k);
+
+/**
+Read the INSEC marker (SEcured Codestream)
+@param j2k J2K handle
+*/
+void j2k_read_insec(opj_j2k_t *j2k);
+
+/*@}*/
+
+#endif /* USE_JPSEC */
 
 #endif /* __JPWL_H */
 

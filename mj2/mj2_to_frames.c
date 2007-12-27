@@ -25,7 +25,14 @@
 * POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "opj_includes.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "openjpeg.h"
+#include "j2k_lib.h"
+#include "j2k.h"
+#include "jp2.h"
 #include "mj2.h"
 #include "mj2_convert.h"
 
@@ -145,6 +152,7 @@ int main(int argc, char *argv[]) {
   {
 		double init_time = opj_clock();
 		double elapsed_time;
+
     sample = &track->sample[snum];
 		if (sample->sample_size-8 > max_codstrm_size) {
 			max_codstrm_size =  sample->sample_size-8;
@@ -203,6 +211,7 @@ int main(int argc, char *argv[]) {
 	
 	free(frame_codestream);	
   fclose(file);	
+
 	/* free remaining structures */
 	if(dinfo) {
 		mj2_destroy_decompress((opj_mj2_t*)dinfo->mj2_handle);

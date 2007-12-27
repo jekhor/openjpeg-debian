@@ -1,3 +1,9 @@
+openjpeg (1.3-1) UNRELEASED; urgency=low
+
+  * (NOT RELEASED YET) New upstream release
+
+ -- Robin Cornelius <robin@debian.example.org>  Thu, 27 Dec 2007 16:25:12 +0000
+
 openjpeg (1.2-3) unstable; urgency=low
 
   * Sync up to SVN 485

@@ -34,6 +34,7 @@
 #include <string.h>
 #include "openjpeg.h"
 #include "../libs/libtiff/tiffio.h"
+#include "convert.h"
 
 /*
  * Get logarithm of an integer and round downwards.
@@ -64,6 +65,300 @@ static int int_ceildivpow2(int a, int b) {
  */
 static int int_ceildiv(int a, int b) {
 	return (a + b - 1) / b;
+}
+
+
+/* -->> -->> -->> -->>
+
+  TGA IMAGE FORMAT
+
+ <<-- <<-- <<-- <<-- */
+
+// TGA header definition.
+#pragma pack(push,1) // Pack structure byte aligned
+typedef struct tga_header
+{                           
+    uint8   id_length;              /* Image id field length    */
+    uint8   colour_map_type;        /* Colour map type          */
+    uint8   image_type;             /* Image type               */
+    /*
+    ** Colour map specification
+    */
+    uint16  colour_map_index;       /* First entry index        */
+    uint16  colour_map_length;      /* Colour map length        */
+    uint8   colour_map_entry_size;  /* Colour map entry size    */
+    /*
+    ** Image specification
+    */
+    uint16  x_origin;               /* x origin of image        */
+    uint16  y_origin;               /* u origin of image        */
+    uint16  image_width;            /* Image width              */
+    uint16  image_height;           /* Image height             */
+    uint8   pixel_depth;            /* Pixel depth              */
+    uint8   image_desc;             /* Image descriptor         */
+} tga_header;
+#pragma pack(pop) // Return to normal structure packing alignment.
+
+int tga_readheader(FILE *fp, int *bits_per_pixel, int *width, int *height, int *flip_image)
+{
+	int palette_size;
+	tga_header tga ;
+
+	if (!bits_per_pixel || !width || !height || !flip_image)
+		return 0;
+	
+	// Read TGA header
+	fread((uint8*)&tga, sizeof(tga_header), 1, fp);
+
+	*bits_per_pixel = tga.pixel_depth;
+	
+	*width  = tga.image_width;
+	*height = tga.image_height ;
+
+	// Ignore tga identifier, if present ...
+	if (tga.id_length)
+	{
+		uint8 *id = (uint8 *) malloc(tga.id_length);
+		fread(id, tga.id_length, 1, fp);
+		free(id);  
+	}
+
+	// Test for compressed formats ... not yet supported ...
+	// Note :-  9 - RLE encoded palettized.
+	//	  	   10 - RLE encoded RGB.
+	if (tga.image_type > 8)
+	{
+		fprintf(stderr, "Sorry, compressed tga files are not currently supported.\n");
+		return 0 ;
+	}
+
+	*flip_image = !(tga.image_desc & 32);
+
+	// Palettized formats are not yet supported, skip over the palette, if present ... 
+	palette_size = tga.colour_map_length * (tga.colour_map_entry_size/8);
+	
+	if (palette_size>0)
+	{
+		fprintf(stderr, "File contains a palette - not yet supported.");
+		fseek(fp, palette_size, SEEK_CUR);
+	}
+	return 1;
+}
+
+int tga_writeheader(FILE *fp, int bits_per_pixel, int width, int height, bool flip_image)
+{
+	tga_header tga;
+
+	if (!bits_per_pixel || !width || !height)
+		return 0;
+
+	memset(&tga, 0, sizeof(tga_header));
+
+	tga.pixel_depth = bits_per_pixel;
+	tga.image_width  = width;
+	tga.image_height = height;
+	tga.image_type = 2; // Uncompressed.
+	tga.image_desc = 8; // 8 bits per component.
+
+	if (flip_image)
+		tga.image_desc |= 32;
+
+	// Write TGA header
+	fwrite((uint8*)&tga, sizeof(tga_header), 1, fp);
+
+	return 1;
+}
+
+opj_image_t* tgatoimage(const char *filename, opj_cparameters_t *parameters) {
+	FILE *f;
+	opj_image_t *image;
+	uint32 image_width, image_height, pixel_bit_depth;
+	uint32 x, y;
+	int flip_image=0;
+	opj_image_cmptparm_t cmptparm[4];	/* maximum 4 components */
+	int numcomps;
+	OPJ_COLOR_SPACE color_space;
+	bool mono ;
+	bool save_alpha;
+	int subsampling_dx, subsampling_dy;
+	int i;	
+
+	f = fopen(filename, "rb");
+	if (!f) {
+		fprintf(stderr, "Failed to open %s for reading !!\n", filename);
+		return 0;
+	}
+
+	if (!tga_readheader(f, &pixel_bit_depth, &image_width, &image_height, &flip_image))
+		return NULL;
+
+	// We currently only support 24 & 32 bit tga's ...
+	if (!((pixel_bit_depth == 24) || (pixel_bit_depth == 32)))
+		return NULL;
+
+	/* initialize image components */   
+	memset(&cmptparm[0], 0, 4 * sizeof(opj_image_cmptparm_t));
+
+	mono = (pixel_bit_depth == 8) || (pixel_bit_depth == 16);  // Mono with & without alpha.
+	save_alpha = (pixel_bit_depth == 16) || (pixel_bit_depth == 32); // Mono with alpha, or RGB with alpha
+
+	if (mono) {
+		color_space = CLRSPC_GRAY;
+		numcomps = save_alpha ? 2 : 1;
+	}	
+	else {
+		numcomps = save_alpha ? 4 : 3;
+		color_space = CLRSPC_SRGB;
+	}
+
+	subsampling_dx = parameters->subsampling_dx;
+	subsampling_dy = parameters->subsampling_dy;
+
+	for (i = 0; i < numcomps; i++) {
+		cmptparm[i].prec = 8;
+		cmptparm[i].bpp = 8;
+		cmptparm[i].sgnd = 0;
+		cmptparm[i].dx = subsampling_dx;
+		cmptparm[i].dy = subsampling_dy;
+		cmptparm[i].w = image_width;
+		cmptparm[i].h = image_height;
+	}
+
+	/* create the image */
+	image = opj_image_create(numcomps, &cmptparm[0], color_space);
+
+	if (!image)
+		return NULL;
+
+	/* set image offset and reference grid */
+	image->x0 = parameters->image_offset_x0;
+	image->y0 = parameters->image_offset_y0;
+	image->x1 =	!image->x0 ? (image_width - 1) * subsampling_dx + 1 : image->x0 + (image_width - 1) * subsampling_dx + 1;
+	image->y1 =	!image->y0 ? (image_height - 1) * subsampling_dy + 1 : image->y0 + (image_height - 1) * subsampling_dy + 1;
+
+	/* set image data */
+	for (y=0; y < image_height; y++) 
+	{
+		int index;
+
+		if (flip_image)
+			index = (image_height-y-1)*image_width;
+		else
+			index = y*image_width;
+
+		if (numcomps==3)
+		{
+			for (x=0;x<image_width;x++) 
+			{
+				uint8 r,g,b;
+				fread(&b, 1, 1, f);
+				fread(&g, 1, 1, f);
+				fread(&r, 1, 1, f);
+
+				image->comps[0].data[index]=r;
+				image->comps[1].data[index]=g;
+				image->comps[2].data[index]=b;
+				index++;
+			}
+		}
+		else if (numcomps==4)
+		{
+			for (x=0;x<image_width;x++) 
+			{
+				uint8 r,g,b,a;
+				fread(&b, 1, 1, f);
+				fread(&g, 1, 1, f);
+				fread(&r, 1, 1, f);
+				fread(&a, 1, 1, f);
+
+				image->comps[0].data[index]=r;
+				image->comps[1].data[index]=g;
+				image->comps[2].data[index]=b;
+				image->comps[3].data[index]=a;
+				index++;
+			}
+		}
+		else {
+			fprintf(stderr, "Currently unsupported bit depth : %s\n", filename);
+		}
+	}	
+	return image;
+}
+
+int imagetotga(opj_image_t * image, const char *outfile) {
+	int width, height, bpp, x, y;
+	bool write_alpha;
+	int i;
+	uint32 alpha_channel;
+	float r,g,b,a;
+	uint8 value;
+	float scale;
+	FILE *fdest;
+
+	fdest = fopen(outfile, "wb");
+	if (!fdest) {
+		fprintf(stderr, "ERROR -> failed to open %s for writing\n", outfile);
+		return 1;
+	}
+
+	for (i = 0; i < image->numcomps-1; i++)	{
+		if ((image->comps[0].dx != image->comps[i+1].dx) 
+			||(image->comps[0].dy != image->comps[i+1].dy) 
+			||(image->comps[0].prec != image->comps[i+1].prec))	{
+      fprintf(stderr, "Unable to create a tga file with such J2K image charateristics.");
+      return 1;
+   }
+	}
+
+	width = image->comps[0].w;
+	height = image->comps[0].h; 
+
+	// Mono with alpha, or RGB with alpha.
+	write_alpha = (image->numcomps==2) || (image->numcomps==4);   
+
+	// Write TGA header 
+	bpp = write_alpha ? 32 : 24;
+	if (!tga_writeheader(fdest, bpp, width , height, true))
+		return 1;
+
+	alpha_channel = image->numcomps-1; 
+
+	scale = 255.0f / (float)((1<<image->comps[0].prec)-1);
+
+	for (y=0; y < height; y++) {
+		uint32 index=y*width;
+
+		for (x=0; x < width; x++, index++)	{
+			r = (float)(image->comps[0].data[index]);
+
+			if (image->numcomps>2) {
+				g = (float)(image->comps[1].data[index]);
+				b = (float)(image->comps[2].data[index]);
+			}
+			else  {// Greyscale ...
+				g = r;
+				b = r;
+			}
+
+			// TGA format writes BGR ...
+			value = (uint8)(b*scale);
+			fwrite(&value,1,1,fdest);
+
+			value = (uint8)(g*scale);
+			fwrite(&value,1,1,fdest);
+
+			value = (uint8)(r*scale);
+			fwrite(&value,1,1,fdest);
+
+			if (write_alpha) {
+				a = (float)(image->comps[alpha_channel].data[index]);
+				value = (uint8)(a*scale);
+				fwrite(&value,1,1,fdest);
+			}
+		}
+	}
+
+	return 0;
 }
 
 /* -->> -->> -->> -->>
@@ -469,9 +764,10 @@ opj_image_t* bmptoimage(const char *filename, opj_cparameters_t *parameters) {
 }
 
 int imagetobmp(opj_image_t * image, const char *outfile) {
-	int w, wr, h, hr;
+	int w, h;
 	int i, pad;
 	FILE *fdest = NULL;
+	int adjustR, adjustG, adjustB;
 
 	if (image->numcomps == 3 && image->comps[0].dx == image->comps[1].dx
 		&& image->comps[1].dx == image->comps[2].dx
@@ -490,64 +786,81 @@ int imagetobmp(opj_image_t * image, const char *outfile) {
 			return 1;
 		}
 	    
-		/* w = int_ceildiv(image->x1 - image->x0, image->comps[0].dx); */
-		/* wr = int_ceildiv(int_ceildivpow2(image->x1 - image->x0,image->factor), image->comps[0].dx); */
-		w = image->comps[0].w;
-		wr = int_ceildivpow2(image->comps[0].w, image->comps[0].factor);
-	    
-		/* h = int_ceildiv(image->y1 - image->y0, image->comps[0].dy); */
-		/* hr = int_ceildiv(int_ceildivpow2(image->y1 - image->y0,image->factor), image->comps[0].dy); */
+		w = image->comps[0].w;	    
 		h = image->comps[0].h;
-		hr = int_ceildivpow2(image->comps[0].h, image->comps[0].factor);
 	    
 		fprintf(fdest, "BM");
 	    
 		/* FILE HEADER */
 		/* ------------- */
 		fprintf(fdest, "%c%c%c%c",
-			(unsigned char) (hr * wr * 3 + 3 * hr * (wr % 2) + 54) & 0xff,
-			(unsigned char) ((hr * wr * 3 + 3 * hr * (wr % 2) + 54)	>> 8) & 0xff,
-			(unsigned char) ((hr * wr * 3 + 3 * hr * (wr % 2) + 54)	>> 16) & 0xff,
-			(unsigned char) ((hr * wr * 3 + 3 * hr * (wr % 2) + 54)	>> 24) & 0xff);
+			(unsigned char) (h * w * 3 + 3 * h * (w % 2) + 54) & 0xff,
+			(unsigned char) ((h * w * 3 + 3 * h * (w % 2) + 54)	>> 8) & 0xff,
+			(unsigned char) ((h * w * 3 + 3 * h * (w % 2) + 54)	>> 16) & 0xff,
+			(unsigned char) ((h * w * 3 + 3 * h * (w % 2) + 54)	>> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (0) & 0xff, ((0) >> 8) & 0xff, ((0) >> 16) & 0xff, ((0) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (54) & 0xff, ((54) >> 8) & 0xff,((54) >> 16) & 0xff, ((54) >> 24) & 0xff);
 	    
 		/* INFO HEADER   */
 		/* ------------- */
 		fprintf(fdest, "%c%c%c%c", (40) & 0xff, ((40) >> 8) & 0xff,	((40) >> 16) & 0xff, ((40) >> 24) & 0xff);
-		fprintf(fdest, "%c%c%c%c", (unsigned char) ((wr) & 0xff),
-			(unsigned char) ((wr) >> 8) & 0xff,
-			(unsigned char) ((wr) >> 16) & 0xff,
-			(unsigned char) ((wr) >> 24) & 0xff);
-		fprintf(fdest, "%c%c%c%c", (unsigned char) ((hr) & 0xff),
-			(unsigned char) ((hr) >> 8) & 0xff,
-			(unsigned char) ((hr) >> 16) & 0xff,
-			(unsigned char) ((hr) >> 24) & 0xff);
+		fprintf(fdest, "%c%c%c%c", (unsigned char) ((w) & 0xff),
+			(unsigned char) ((w) >> 8) & 0xff,
+			(unsigned char) ((w) >> 16) & 0xff,
+			(unsigned char) ((w) >> 24) & 0xff);
+		fprintf(fdest, "%c%c%c%c", (unsigned char) ((h) & 0xff),
+			(unsigned char) ((h) >> 8) & 0xff,
+			(unsigned char) ((h) >> 16) & 0xff,
+			(unsigned char) ((h) >> 24) & 0xff);
 		fprintf(fdest, "%c%c", (1) & 0xff, ((1) >> 8) & 0xff);
 		fprintf(fdest, "%c%c", (24) & 0xff, ((24) >> 8) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (0) & 0xff, ((0) >> 8) & 0xff, ((0) >> 16) & 0xff, ((0) >> 24) & 0xff);
-		fprintf(fdest, "%c%c%c%c", (unsigned char) (3 * hr * wr + 3 * hr * (wr % 2)) & 0xff,
-			(unsigned char) ((hr * wr * 3 + 3 * hr * (wr % 2)) >> 8) & 0xff,
-			(unsigned char) ((hr * wr * 3 + 3 * hr * (wr % 2)) >> 16) & 0xff,
-			(unsigned char) ((hr * wr * 3 + 3 * hr * (wr % 2)) >> 24) & 0xff);
+		fprintf(fdest, "%c%c%c%c", (unsigned char) (3 * h * w + 3 * h * (w % 2)) & 0xff,
+			(unsigned char) ((h * w * 3 + 3 * h * (w % 2)) >> 8) & 0xff,
+			(unsigned char) ((h * w * 3 + 3 * h * (w % 2)) >> 16) & 0xff,
+			(unsigned char) ((h * w * 3 + 3 * h * (w % 2)) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (7834) & 0xff, ((7834) >> 8) & 0xff, ((7834) >> 16) & 0xff, ((7834) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (7834) & 0xff, ((7834) >> 8) & 0xff,	((7834) >> 16) & 0xff, ((7834) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (0) & 0xff, ((0) >> 8) & 0xff, ((0) >> 16) & 0xff, ((0) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (0) & 0xff, ((0) >> 8) & 0xff, ((0) >> 16) & 0xff, ((0) >> 24) & 0xff);
 	    
-		for (i = 0; i < wr * hr; i++) {
-			unsigned char R, G, B;
-			/* a modifier */
-			/* R = image->comps[0].data[w * h - ((i) / (w) + 1) * w + (i) % (w)]; */
-			R = image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-			/* G = image->comps[1].data[w * h - ((i) / (w) + 1) * w + (i) % (w)]; */
-			G = image->comps[1].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-			/* B = image->comps[2].data[w * h - ((i) / (w) + 1) * w + (i) % (w)]; */
-			B = image->comps[2].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)];
-			fprintf(fdest, "%c%c%c", B, G, R);
+		if (image->comps[0].prec > 8) {
+			adjustR = image->comps[0].prec - 8;
+			printf("BMP CONVERSION: Truncating component 0 from %d bits to 8 bits\n", image->comps[0].prec);
+		}
+		else 
+			adjustR = 0;
+		if (image->comps[1].prec > 8) {
+			adjustG = image->comps[1].prec - 8;
+			printf("BMP CONVERSION: Truncating component 1 from %d bits to 8 bits\n", image->comps[1].prec);
+		}
+		else 
+			adjustG = 0;
+		if (image->comps[2].prec > 8) {
+			adjustB = image->comps[2].prec - 8;
+			printf("BMP CONVERSION: Truncating component 2 from %d bits to 8 bits\n", image->comps[2].prec);
+		}
+		else 
+			adjustB = 0;
+
+		for (i = 0; i < w * h; i++) {
+			unsigned char rc, gc, bc;
+			int r, g, b;
+							
+			r = image->comps[0].data[w * h - ((i) / (w) + 1) * w + (i) % (w)];
+			r += (image->comps[0].sgnd ? 1 << (image->comps[0].prec - 1) : 0);
+			rc = (unsigned char) ((r >> adjustR)+((r >> (adjustR-1))%2));
+			g = image->comps[1].data[w * h - ((i) / (w) + 1) * w + (i) % (w)];
+			g += (image->comps[1].sgnd ? 1 << (image->comps[1].prec - 1) : 0);
+			gc = (unsigned char) ((g >> adjustG)+((g >> (adjustG-1))%2));
+			b = image->comps[2].data[w * h - ((i) / (w) + 1) * w + (i) % (w)];
+			b += (image->comps[2].sgnd ? 1 << (image->comps[2].prec - 1) : 0);
+			bc = (unsigned char) ((b >> adjustB)+((b >> (adjustB-1))%2));
+
+			fprintf(fdest, "%c%c%c", bc, gc, rc);
 			
-			if ((i + 1) % wr == 0) {
-				for (pad = (3 * wr) % 4 ? 4 - (3 * wr) % 4 : 0; pad > 0; pad--)	/* ADD */
+			if ((i + 1) % w == 0) {
+				for (pad = (3 * w) % 4 ? 4 - (3 * w) % 4 : 0; pad > 0; pad--)	/* ADD */
 					fprintf(fdest, "%c", 0);
 			}
 		}
@@ -559,24 +872,17 @@ int imagetobmp(opj_image_t * image, const char *outfile) {
 		<<-- <<-- <<-- <<-- */
 
 		fdest = fopen(outfile, "wb");
-		/* w = int_ceildiv(image->x1 - image->x0, image->comps[0].dx); */
-		/* wr = int_ceildiv(int_ceildivpow2(image->x1 - image->x0,image->factor), image->comps[0].dx); */
-		w = image->comps[0].w;
-		wr = int_ceildivpow2(image->comps[0].w, image->comps[0].factor);
-	    
-		/* h = int_ceildiv(image->y1 - image->y0, image->comps[0].dy); */
-		/* hr = int_ceildiv(int_ceildivpow2(image->y1 - image->y0,image->factor), image->comps[0].dy); */
+		w = image->comps[0].w;	    
 		h = image->comps[0].h;
-		hr = int_ceildivpow2(image->comps[0].h, image->comps[0].factor);
 	    
 		fprintf(fdest, "BM");
 	    
 		/* FILE HEADER */
 		/* ------------- */
-		fprintf(fdest, "%c%c%c%c", (unsigned char) (hr * wr + 54 + 1024 + hr * (wr % 2)) & 0xff,
-			(unsigned char) ((hr * wr + 54 + 1024 + hr * (wr % 2)) >> 8) & 0xff,
-			(unsigned char) ((hr * wr + 54 + 1024 + hr * (wr % 2)) >> 16) & 0xff,
-			(unsigned char) ((hr * wr + 54 + 1024 + wr * (wr % 2)) >> 24) & 0xff);
+		fprintf(fdest, "%c%c%c%c", (unsigned char) (h * w + 54 + 1024 + h * (w % 2)) & 0xff,
+			(unsigned char) ((h * w + 54 + 1024 + h * (w % 2)) >> 8) & 0xff,
+			(unsigned char) ((h * w + 54 + 1024 + h * (w % 2)) >> 16) & 0xff,
+			(unsigned char) ((h * w + 54 + 1024 + w * (w % 2)) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (0) & 0xff, ((0) >> 8) & 0xff, ((0) >> 16) & 0xff, ((0) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (54 + 1024) & 0xff, ((54 + 1024) >> 8) & 0xff, 
 			((54 + 1024) >> 16) & 0xff,
@@ -585,38 +891,47 @@ int imagetobmp(opj_image_t * image, const char *outfile) {
 		/* INFO HEADER */
 		/* ------------- */
 		fprintf(fdest, "%c%c%c%c", (40) & 0xff, ((40) >> 8) & 0xff,	((40) >> 16) & 0xff, ((40) >> 24) & 0xff);
-		fprintf(fdest, "%c%c%c%c", (unsigned char) ((wr) & 0xff),
-			(unsigned char) ((wr) >> 8) & 0xff,
-			(unsigned char) ((wr) >> 16) & 0xff,
-			(unsigned char) ((wr) >> 24) & 0xff);
-		fprintf(fdest, "%c%c%c%c", (unsigned char) ((hr) & 0xff),
-			(unsigned char) ((hr) >> 8) & 0xff,
-			(unsigned char) ((hr) >> 16) & 0xff,
-			(unsigned char) ((hr) >> 24) & 0xff);
+		fprintf(fdest, "%c%c%c%c", (unsigned char) ((w) & 0xff),
+			(unsigned char) ((w) >> 8) & 0xff,
+			(unsigned char) ((w) >> 16) & 0xff,
+			(unsigned char) ((w) >> 24) & 0xff);
+		fprintf(fdest, "%c%c%c%c", (unsigned char) ((h) & 0xff),
+			(unsigned char) ((h) >> 8) & 0xff,
+			(unsigned char) ((h) >> 16) & 0xff,
+			(unsigned char) ((h) >> 24) & 0xff);
 		fprintf(fdest, "%c%c", (1) & 0xff, ((1) >> 8) & 0xff);
 		fprintf(fdest, "%c%c", (8) & 0xff, ((8) >> 8) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (0) & 0xff, ((0) >> 8) & 0xff, ((0) >> 16) & 0xff, ((0) >> 24) & 0xff);
-		fprintf(fdest, "%c%c%c%c", (unsigned char) (hr * wr + hr * (wr % 2)) & 0xff,
-			(unsigned char) ((hr * wr + hr * (wr % 2)) >> 8) &	0xff,
-			(unsigned char) ((hr * wr + hr * (wr % 2)) >> 16) &	0xff,
-			(unsigned char) ((hr * wr + hr * (wr % 2)) >> 24) & 0xff);
+		fprintf(fdest, "%c%c%c%c", (unsigned char) (h * w + h * (w % 2)) & 0xff,
+			(unsigned char) ((h * w + h * (w % 2)) >> 8) &	0xff,
+			(unsigned char) ((h * w + h * (w % 2)) >> 16) &	0xff,
+			(unsigned char) ((h * w + h * (w % 2)) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (7834) & 0xff, ((7834) >> 8) & 0xff,	((7834) >> 16) & 0xff, ((7834) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (7834) & 0xff, ((7834) >> 8) & 0xff,	((7834) >> 16) & 0xff, ((7834) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (256) & 0xff, ((256) >> 8) & 0xff, ((256) >> 16) & 0xff, ((256) >> 24) & 0xff);
 		fprintf(fdest, "%c%c%c%c", (256) & 0xff, ((256) >> 8) & 0xff, ((256) >> 16) & 0xff, ((256) >> 24) & 0xff);
+
+		if (image->comps[0].prec > 8) {
+			adjustR = image->comps[0].prec - 8;
+			printf("BMP CONVERSION: Truncating component 0 from %d bits to 8 bits\n", image->comps[0].prec);
+		}
 
 		for (i = 0; i < 256; i++) {
 			fprintf(fdest, "%c%c%c%c", i, i, i, 0);
 		}
 
-		for (i = 0; i < wr * hr; i++) {
-			/* a modifier !! */
-			/* fprintf(fdest, "%c", image->comps[0].data[w * h - ((i) / (w) + 1) * w + (i) % (w)]); */
-			fprintf(fdest, "%c", image->comps[0].data[w * hr - ((i) / (wr) + 1) * w + (i) % (wr)]);
-			/*if (((i + 1) % w == 0 && w % 2))
-			fprintf(fdest, "%c", 0); */
-			if ((i + 1) % wr == 0) {
-				for (pad = wr % 4 ? 4 - wr % 4 : 0; pad > 0; pad--)	/* ADD */
+		for (i = 0; i < w * h; i++) {
+			unsigned char rc;
+			int r;
+			
+			r = image->comps[0].data[w * h - ((i) / (w) + 1) * w + (i) % (w)];
+			r += (image->comps[0].sgnd ? 1 << (image->comps[0].prec - 1) : 0);
+			rc = (unsigned char) ((r >> adjustR)+((r >> (adjustR-1))%2));
+			
+			fprintf(fdest, "%c", rc);
+
+			if ((i + 1) % w == 0) {
+				for (pad = w % 4 ? 4 - w % 4 : 0; pad > 0; pad--)	/* ADD */
 					fprintf(fdest, "%c", 0);
 			}
 		}
@@ -777,7 +1092,7 @@ opj_image_t* pgxtoimage(const char *filename, opj_cparameters_t *parameters) {
 }
 
 int imagetopgx(opj_image_t * image, const char *outfile) {
-	int w, wr, h, hr;
+	int w, h;
 	int i, j, compno;
 	FILE *fdest = NULL;
 
@@ -812,17 +1127,11 @@ int imagetopgx(opj_image_t * image, const char *outfile) {
     if( total > 256 ) {
       free(name);
       }
-		/* w = int_ceildiv(image->x1 - image->x0, comp->dx); */
-		/* wr = int_ceildiv(int_ceildivpow2(image->x1 - image->x0,image->factor), comp->dx); */
+
 		w = image->comps[compno].w;
-		wr = int_ceildivpow2(image->comps[compno].w, image->comps[compno].factor);
-	    
-		/* h = int_ceildiv(image->y1 - image->y0, comp->dy); */
-		/* hr = int_ceildiv(int_ceildivpow2(image->y1 - image->y0,image->factor), comp->dy); */
 		h = image->comps[compno].h;
-		hr = int_ceildivpow2(image->comps[compno].h, image->comps[compno].factor);
 	    
-		fprintf(fdest, "PG ML %c %d %d %d\n", comp->sgnd ? '-' : '+', comp->prec, wr, hr);
+		fprintf(fdest, "PG ML %c %d %d %d\n", comp->sgnd ? '-' : '+', comp->prec, w, h);
 		if (comp->prec <= 8) {
 			nbytes = 1;
 		} else if (comp->prec <= 16) {
@@ -830,8 +1139,8 @@ int imagetopgx(opj_image_t * image, const char *outfile) {
 		} else {
 			nbytes = 4;
 		}
-		for (i = 0; i < wr * hr; i++) {
-			int v = image->comps[compno].data[i / wr * w + i % wr];
+		for (i = 0; i < w * h; i++) {
+			int v = image->comps[compno].data[i];
 			for (j = nbytes - 1; j >= 0; j--) {
 				char byte = (char) (v >> (j * 8));
 				fwrite(&byte, 1, 1, fdest);
@@ -949,9 +1258,9 @@ opj_image_t* pnmtoimage(const char *filename, opj_cparameters_t *parameters) {
 }
 
 int imagetopnm(opj_image_t * image, const char *outfile) {
-	int w, wr, wrr, h, hr, hrr, max;
+	int w, wr, h, hr, max;
 	int i, compno;
-	int adjust;
+	int adjustR, adjustG, adjustB, adjustX;
 	FILE *fdest = NULL;
 	char S2;
 	const char *tmp = outfile;
@@ -978,43 +1287,60 @@ int imagetopnm(opj_image_t * image, const char *outfile) {
 		}
 
 		w = int_ceildiv(image->x1 - image->x0, image->comps[0].dx);
-		/* wr = int_ceildiv(int_ceildivpow2(image->x1 - image->x0,image->factor),image->comps[0].dx); */
 		wr = image->comps[0].w;
-		wrr = int_ceildivpow2(image->comps[0].w, image->comps[0].factor);
         
 		h = int_ceildiv(image->y1 - image->y0, image->comps[0].dy);
-		/* hr = int_ceildiv(int_ceildivpow2(image->y1 - image->y0,image->factor), image->comps[0].dy); */
 		hr = image->comps[0].h;
-		hrr = int_ceildivpow2(image->comps[0].h, image->comps[0].factor);
 	    
 		max = image->comps[0].prec > 8 ? 255 : (1 << image->comps[0].prec) - 1;
 	    
 		image->comps[0].x0 = int_ceildivpow2(image->comps[0].x0 - int_ceildiv(image->x0, image->comps[0].dx), image->comps[0].factor);
 		image->comps[0].y0 = int_ceildivpow2(image->comps[0].y0 -	int_ceildiv(image->y0, image->comps[0].dy), image->comps[0].factor);
 
-		fprintf(fdest, "P6\n%d %d\n%d\n", wrr, hrr, max);
-		adjust = image->comps[0].prec > 8 ? image->comps[0].prec - 8 : 0;
-		for (i = 0; i < wrr * hrr; i++) {
+		fprintf(fdest, "P6\n%d %d\n%d\n", wr, hr, max);
+
+		if (image->comps[0].prec > 8) {
+			adjustR = image->comps[0].prec - 8;
+			printf("PNM CONVERSION: Truncating component 0 from %d bits to 8 bits\n", image->comps[0].prec);
+		}
+		else 
+			adjustR = 0;
+		if (image->comps[1].prec > 8) {
+			adjustG = image->comps[1].prec - 8;
+			printf("PNM CONVERSION: Truncating component 1 from %d bits to 8 bits\n", image->comps[1].prec);
+		}
+		else 
+			adjustG = 0;
+		if (image->comps[2].prec > 8) {
+			adjustB = image->comps[2].prec - 8;
+			printf("PNM CONVERSION: Truncating component 2 from %d bits to 8 bits\n", image->comps[2].prec);
+		}
+		else 
+			adjustB = 0;
+
+
+		for (i = 0; i < wr * hr; i++) {
 			int r, g, b;
 			unsigned char rc,gc,bc;
-			r = image->comps[0].data[i / wrr * wr + i % wrr];
+			r = image->comps[0].data[i];
 			r += (image->comps[0].sgnd ? 1 << (image->comps[0].prec - 1) : 0);
-			rc = (unsigned char) ((r >> adjust)+((r >> (adjust-1))%2));
+			rc = (unsigned char) ((r >> adjustR)+((r >> (adjustR-1))%2));
 
-			g = image->comps[1].data[i / wrr * wr + i % wrr];
+			g = image->comps[1].data[i];
 			g += (image->comps[1].sgnd ? 1 << (image->comps[1].prec - 1) : 0);
-			gc = (unsigned char) ((g >> adjust)+((g >> (adjust-1))%2));
+			gc = (unsigned char) ((g >> adjustG)+((g >> (adjustG-1))%2));
 			
-			b = image->comps[2].data[i / wrr * wr + i % wrr];
+			b = image->comps[2].data[i];
 			b += (image->comps[2].sgnd ? 1 << (image->comps[2].prec - 1) : 0);
-			bc = (unsigned char) ((b >> adjust)+((b >> (adjust-1))%2));
+			bc = (unsigned char) ((b >> adjustB)+((b >> (adjustB-1))%2));
 			
 			fprintf(fdest, "%c%c%c", rc, gc, bc);
 		}
 		fclose(fdest);
+
 	} else {
 		int ncomp=(S2=='g' || S2=='G')?1:image->numcomps;
-		if (image->numcomps>ncomp) {
+		if (image->numcomps > ncomp) {
 			fprintf(stderr,"WARNING -> [PGM files] Only the first component\n");
 			fprintf(stderr,"           is written to the file\n");
 		}
@@ -1033,29 +1359,31 @@ int imagetopnm(opj_image_t * image, const char *outfile) {
 			}
             
 			w = int_ceildiv(image->x1 - image->x0, image->comps[compno].dx);
-			/* wr = int_ceildiv(int_ceildivpow2(image->x1 - image->x0,image->factor),image->comps[compno].dx); */
 			wr = image->comps[compno].w;
-			wrr = int_ceildivpow2(image->comps[compno].w, image->comps[compno].factor);
 			
 			h = int_ceildiv(image->y1 - image->y0, image->comps[compno].dy);
-			/* hr = int_ceildiv(int_ceildivpow2(image->y1 - image->y0,image->factor), image->comps[compno].dy); */
 			hr = image->comps[compno].h;
-			hrr = int_ceildivpow2(image->comps[compno].h, image->comps[compno].factor);
 			
 			max = image->comps[compno].prec > 8 ? 255 : (1 << image->comps[compno].prec) - 1;
 			
 			image->comps[compno].x0 = int_ceildivpow2(image->comps[compno].x0 - int_ceildiv(image->x0, image->comps[compno].dx), image->comps[compno].factor);
 			image->comps[compno].y0 = int_ceildivpow2(image->comps[compno].y0 - int_ceildiv(image->y0, image->comps[compno].dy), image->comps[compno].factor);
 			
-			fprintf(fdest, "P5\n%d %d\n%d\n", wrr, hrr, max);
-			adjust = image->comps[compno].prec > 8 ? image->comps[compno].prec - 8 : 0;
-
-			for (i = 0; i < wrr * hrr; i++) {
+			fprintf(fdest, "P5\n%d %d\n%d\n", wr, hr, max);
+			
+			if (image->comps[compno].prec > 8) {
+				adjustX = image->comps[0].prec - 8;
+				printf("PNM CONVERSION: Truncating component %d from %d bits to 8 bits\n",compno, image->comps[compno].prec);
+			}
+			else 
+				adjustX = 0;
+			
+			for (i = 0; i < wr * hr; i++) {
 				int l;
 				unsigned char lc;
-				l = image->comps[compno].data[i / wrr * wr + i % wrr];
+				l = image->comps[compno].data[i];
 				l += (image->comps[compno].sgnd ? 1 << (image->comps[compno].prec - 1) : 0);
-				lc = (unsigned char) ((l >> adjust)+((l >> (adjust-1))%2));
+				lc = (unsigned char) ((l >> adjustX)+((l >> (adjustX-1))%2));
 				fprintf(fdest, "%c", lc);
 			}
 			fclose(fdest);
@@ -1082,8 +1410,9 @@ typedef struct tiff_infoheader{
 }tiff_infoheader_t;
 
 int imagetotif(opj_image_t * image, const char *outfile) {
-	int width, height;
-	int bps,index;
+	int width, height, imgsize;
+	int bps,index,adjust = 0;
+	int last_i=0;
 	TIFF *tif;
 	tdata_t buf;
 	tstrip_t strip;
@@ -1107,7 +1436,8 @@ int imagetotif(opj_image_t * image, const char *outfile) {
 			}
 
 			width	= image->comps[0].w;
-			height= image->comps[0].h;
+			height	= image->comps[0].h;
+			imgsize = width * height ;
 			bps		= image->comps[0].prec;
 			/* Set tags */
 			TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
@@ -1120,43 +1450,166 @@ int imagetotif(opj_image_t * image, const char *outfile) {
 			TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, 1);
 
 			/* Get a buffer for the data */
-			buf = _TIFFmalloc(TIFFStripSize(tif));
-			index=0;
-			strip_size=0;
 			strip_size=TIFFStripSize(tif);
+			buf = _TIFFmalloc(strip_size);
+			index=0;		
+			adjust = image->comps[0].sgnd ? 1 << (image->comps[0].prec - 1) : 0;
 			for (strip = 0; strip < TIFFNumberOfStrips(tif); strip++) {
 				unsigned char *dat8;
-				int i;
+				int i, ssize;
+				ssize = TIFFStripSize(tif);
 				dat8 = buf;
 				if (image->comps[0].prec == 8){
-					for (i=0; i<TIFFStripSize(tif); i+=3) {	// 8 bits per pixel 
-						dat8[i+0] = image->comps[0].data[index] ;	// R 
-						dat8[i+1] = image->comps[1].data[index] ;	// G 
-						dat8[i+2] = image->comps[2].data[index] ;	// B 
-						index++;
+					for (i=0; i<ssize-2; i+=3) {	// 8 bits per pixel 
+						int r = 0,g = 0,b = 0;
+						if(index < imgsize){
+							r = image->comps[0].data[index];
+							g = image->comps[1].data[index];
+							b = image->comps[2].data[index];
+							if (image->comps[0].sgnd){			
+								r += adjust;
+								g += adjust;
+								b += adjust;
+							}
+							dat8[i+0] = r ;	// R 
+							dat8[i+1] = g ;	// G 
+							dat8[i+2] = b ;	// B 
+							index++;
+							last_i = i+3;
+						}else
+							break;
+					}
+					if(last_i < ssize){
+						for (i=last_i; i<ssize; i+=3) {	// 8 bits per pixel 
+							int r = 0,g = 0,b = 0;
+							if(index < imgsize){
+								r = image->comps[0].data[index];
+								g = image->comps[1].data[index];
+								b = image->comps[2].data[index];
+								if (image->comps[0].sgnd){			
+									r += adjust;
+									g += adjust;
+									b += adjust;
+								}
+								dat8[i+0] = r ;	// R 
+								if(i+1 <ssize) dat8[i+1] = g ;	else break;// G 
+								if(i+2 <ssize) dat8[i+2] = b ;	else break;// B 
+								index++;
+							}else
+								break;
+						}
 					}
 				}else if (image->comps[0].prec == 12){
-					for (i=0; i<TIFFStripSize(tif); i+=9) {	// 12 bits per pixel 
-						dat8[i+0] = (image->comps[0].data[index]>>8)<<4 | (image->comps[0].data[index]>>4);
-						dat8[i+1] = (image->comps[0].data[index]<<4)|((image->comps[1].data[index]>>8)& 0x0f);
-						dat8[i+2] = (image->comps[1].data[index]);
-						dat8[i+3] = (image->comps[2].data[index]>>8)<<4 | (image->comps[2].data[index]>>4);
-						dat8[i+4] = (image->comps[2].data[index]<<4)|((image->comps[1].data[index+1]>>8)& 0x0f);
-						dat8[i+5] = (image->comps[0].data[index+1]);
-						dat8[i+6] = (image->comps[1].data[index+1]>>8)<<4 | (image->comps[1].data[index+1]>>4);
-						dat8[i+7] = (image->comps[1].data[index+1]<<4)|((image->comps[2].data[index+1]>>8)& 0x0f);
-						dat8[i+8] = (image->comps[2].data[index+1]);
-						index+=2;
+					for (i=0; i<ssize-8; i+=9) {	// 12 bits per pixel 
+						int r = 0,g = 0,b = 0;
+						int r1 = 0,g1 = 0,b1 = 0;
+						if((index < imgsize)&(index+1 < imgsize)){
+							r  = image->comps[0].data[index];
+							g  = image->comps[1].data[index];
+							b  = image->comps[2].data[index];
+							r1 = image->comps[0].data[index+1];
+							g1 = image->comps[1].data[index+1];
+							b1 = image->comps[2].data[index+1];
+							if (image->comps[0].sgnd){														
+								r  += adjust;
+								g  += adjust;
+								b  += adjust;
+								r1 += adjust;
+								g1 += adjust;
+								b1 += adjust;
+							}
+							dat8[i+0] = (r >> 4);
+							dat8[i+1] = ((r & 0x0f) << 4 )|((g >> 8)& 0x0f);
+							dat8[i+2] = g ;		
+							dat8[i+3] = (b >> 4);
+							dat8[i+4] = ((b & 0x0f) << 4 )|((r1 >> 8)& 0x0f);
+							dat8[i+5] = r1;		
+							dat8[i+6] = (g1 >> 4);
+							dat8[i+7] = ((g1 & 0x0f)<< 4 )|((b1 >> 8)& 0x0f);
+							dat8[i+8] = b1;
+							index+=2;
+							last_i = i+9;
+						}else
+							break;
+					}
+					if(last_i < ssize){
+						for (i= last_i; i<ssize; i+=9) {	// 12 bits per pixel 
+							int r = 0,g = 0,b = 0;
+							int r1 = 0,g1 = 0,b1 = 0;
+							if((index < imgsize)&(index+1 < imgsize)){
+								r  = image->comps[0].data[index];
+								g  = image->comps[1].data[index];
+								b  = image->comps[2].data[index];
+								r1 = image->comps[0].data[index+1];
+								g1 = image->comps[1].data[index+1];
+								b1 = image->comps[2].data[index+1];
+								if (image->comps[0].sgnd){														
+									r  += adjust;
+									g  += adjust;
+									b  += adjust;
+									r1 += adjust;
+									g1 += adjust;
+									b1 += adjust;
+								}
+								dat8[i+0] = (r >> 4);
+								if(i+1 <ssize) dat8[i+1] = ((r & 0x0f) << 4 )|((g >> 8)& 0x0f); else break;
+								if(i+2 <ssize) dat8[i+2] = g ;			else break;
+								if(i+3 <ssize) dat8[i+3] = (b >> 4);	else break;
+								if(i+4 <ssize) dat8[i+4] = ((b & 0x0f) << 4 )|((r1 >> 8)& 0x0f);else break;
+								if(i+5 <ssize) dat8[i+5] = r1;			else break;
+								if(i+6 <ssize) dat8[i+6] = (g1 >> 4);	else break;
+								if(i+7 <ssize) dat8[i+7] = ((g1 & 0x0f)<< 4 )|((b1 >> 8)& 0x0f);else break;
+								if(i+8 <ssize) dat8[i+8] = b1;			else break;
+								index+=2;
+							}else
+								break;
+						}
 					}
 				}else if (image->comps[0].prec == 16){
-					for (i=0; i<TIFFStripSize(tif); i+=6) {	// 16 bits per pixel 
-						dat8[i+0] =  image->comps[0].data[index];//LSB
-						dat8[i+1] = (image->comps[0].data[index]>> 8);//MSB	 
-						dat8[i+2] =  image->comps[1].data[index]; 
-						dat8[i+3] = (image->comps[1].data[index]>> 8);	
-						dat8[i+4] =  image->comps[2].data[index];	 
-						dat8[i+5] = (image->comps[2].data[index]>> 8); 
-						index++;
+					for (i=0 ; i<ssize-5 ; i+=6) {	// 16 bits per pixel 
+						int r = 0,g = 0,b = 0;
+						if(index < imgsize){
+							r = image->comps[0].data[index];
+							g = image->comps[1].data[index];
+							b = image->comps[2].data[index];
+							if (image->comps[0].sgnd){
+							r += adjust;
+							g += adjust;
+							b += adjust;
+							}
+							dat8[i+0] =  r;//LSB
+							dat8[i+1] = (r >> 8);//MSB	 
+							dat8[i+2] =  g;		
+							dat8[i+3] = (g >> 8);
+							dat8[i+4] =  b;	
+							dat8[i+5] = (b >> 8);
+							index++;
+							last_i = i+6;
+						}else
+							break; 
+					}
+					if(last_i < ssize){
+						for (i=0 ; i<ssize ; i+=6) {	// 16 bits per pixel 
+							int r = 0,g = 0,b = 0;
+							if(index < imgsize){
+								r = image->comps[0].data[index];
+								g = image->comps[1].data[index];
+								b = image->comps[2].data[index];
+								if (image->comps[0].sgnd){
+									r += adjust;
+									g += adjust;
+									b += adjust;
+								}
+								dat8[i+0] =  r;//LSB
+								if(i+1 <ssize) dat8[i+1] = (r >> 8);else break;//MSB	 
+								if(i+2 <ssize) dat8[i+2] =  g;		else break;
+								if(i+3 <ssize) dat8[i+3] = (g >> 8);else break;
+								if(i+4 <ssize) dat8[i+4] =  b;		else break;
+								if(i+5 <ssize) dat8[i+5] = (b >> 8);else break;
+								index++;
+							}else
+								break; 
+						}						
 					}
 				}else{
 					fprintf(stderr,"Bits=%d, Only 8,12,16 bits implemented\n",image->comps[0].prec);
@@ -1179,7 +1632,8 @@ int imagetotif(opj_image_t * image, const char *outfile) {
 			}
 
 			width	= image->comps[0].w;
-			height= image->comps[0].h;
+			height	= image->comps[0].h;
+			imgsize = width * height;
 			bps		= image->comps[0].prec;
 
 			/* Set tags */
@@ -1193,34 +1647,59 @@ int imagetotif(opj_image_t * image, const char *outfile) {
 			TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, 1);
 
 			/* Get a buffer for the data */
-			buf = _TIFFmalloc(TIFFStripSize(tif));
-			index = 0;
-			strip_size = 0;
 			strip_size = TIFFStripSize(tif);
+			buf = _TIFFmalloc(strip_size);
+			index = 0;			
 			for (strip = 0; strip < TIFFNumberOfStrips(tif); strip++) {
 				unsigned char *dat8;
 				int i;
 				dat8 = buf;
 				if (image->comps[0].prec == 8){
 					for (i=0; i<TIFFStripSize(tif); i+=1) {	// 8 bits per pixel 
-						dat8[i+0] = image->comps[0].data[index] ;
-						index++;
+						if(index < imgsize){
+							int r = 0;
+							r = image->comps[0].data[index];
+							if (image->comps[0].sgnd){
+								r  += adjust;
+							}
+							dat8[i+0] = r;
+							index++;
+						}else
+							break; 
 					}
 				}else if (image->comps[0].prec == 12){
 					for (i = 0; i<TIFFStripSize(tif); i+=3) {	// 12 bits per pixel 
-						dat8[i+0] = (image->comps[0].data[index]>>8)<<4 | (image->comps[0].data[index]>>4);
-						dat8[i+1] = (image->comps[0].data[index]<<4)|((image->comps[0].data[index+1]>>8)& 0x0f);
-						dat8[i+2] = (image->comps[0].data[index+1]);
-						index+=2;
+						if(index < imgsize){
+							int r = 0, r1 = 0;
+							r  = image->comps[0].data[index];
+							r1 = image->comps[0].data[index+1];
+							if (image->comps[0].sgnd){
+								r  += adjust;
+								r1 += adjust;
+							}
+							dat8[i+0] = (r >> 4);
+							dat8[i+1] = ((r & 0x0f) << 4 )|((r1 >> 8)& 0x0f);
+							dat8[i+2] = r1 ;
+							index+=2;
+						}else
+							break; 
 					}
 				}else if (image->comps[0].prec == 16){
 					for (i=0; i<TIFFStripSize(tif); i+=2) {	// 16 bits per pixel 
-						dat8[i+0] =  image->comps[0].data[index];
-						dat8[i+1] = (image->comps[0].data[index]>> 8);
-						index++;
+						if(index < imgsize){
+							int r = 0;
+							r = image->comps[0].data[index];
+							if (image->comps[0].sgnd){
+								r  += adjust;
+							}
+							dat8[i+0] = r;
+							dat8[i+1] = r >> 8;
+							index++;
+						}else
+							break; 
 					}
 				}else{
-					fprintf(stderr,"Bits=%d, Only 8,12,16 bits implemented\n",image->comps[0].prec);
+					fprintf(stderr,"TIFF file creation. Bits=%d, Only 8,12,16 bits implemented\n",image->comps[0].prec);
 					fprintf(stderr,"Aborting\n");
 					return 1;
 				}
@@ -1229,14 +1708,14 @@ int imagetotif(opj_image_t * image, const char *outfile) {
 			_TIFFfree(buf);
 			TIFFClose(tif);
 		}else{
-			fprintf(stderr,"False color format. Only RGB & Grayscale has been implemented\n");
+			fprintf(stderr,"TIFF file creation. Bad color format. Only RGB & Grayscale has been implemented\n");
 			fprintf(stderr,"Aborting\n");
 			return 1;
 		}
 		return 0;
 }
 
-opj_image_t* tiftoimage(char *filename, opj_cparameters_t *parameters)
+opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters)
 {
 	int subsampling_dx = parameters->subsampling_dx;
 	int subsampling_dy = parameters->subsampling_dy;
@@ -1249,6 +1728,7 @@ opj_image_t* tiftoimage(char *filename, opj_cparameters_t *parameters)
 	OPJ_COLOR_SPACE color_space;
 	opj_image_cmptparm_t cmptparm[3];
 	opj_image_t * image = NULL;
+	int imgsize = 0;
 
 	tif = TIFFOpen(filename, "r");
 
@@ -1308,6 +1788,7 @@ opj_image_t* tiftoimage(char *filename, opj_cparameters_t *parameters)
 		strip_size=0;
 		strip_size=TIFFStripSize(tif);
 		index = 0;
+		imgsize = image->comps[0].w * image->comps[0].h ;
 		/* Read the Image components*/
 		for (strip = 0; strip < TIFFNumberOfStrips(tif); strip++) {
 			unsigned char *dat8;
@@ -1317,43 +1798,52 @@ opj_image_t* tiftoimage(char *filename, opj_cparameters_t *parameters)
 
 			if (Info.tiBps==12){
 				for (i=0; i<ssize; i+=9) {	/*12 bits per pixel*/
-					image->comps[0].data[index]   = ( dat8[i+0]<<4 )		|(dat8[i+1]>>4);
-					image->comps[1].data[index]   = ((dat8[i+1]& 0x0f)<< 8)	| dat8[i+2];
-					image->comps[2].data[index]   = ( dat8[i+3]<<4)			|(dat8[i+4]>>4);
-					image->comps[0].data[index+1] = ((dat8[i+4]& 0x0f)<< 8)	| dat8[i+5];
-					image->comps[1].data[index+1] = ( dat8[i+6] <<4)		|(dat8[i+7]>>4);
-					image->comps[2].data[index+1] = ((dat8[i+7]& 0x0f)<< 8)	| dat8[i+8];
-					index+=2;
+					if((index < imgsize)&(index+1 < imgsize)){
+						image->comps[0].data[index]   = ( dat8[i+0]<<4 )		|(dat8[i+1]>>4);
+						image->comps[1].data[index]   = ((dat8[i+1]& 0x0f)<< 8)	| dat8[i+2];
+						image->comps[2].data[index]   = ( dat8[i+3]<<4)			|(dat8[i+4]>>4);
+						image->comps[0].data[index+1] = ((dat8[i+4]& 0x0f)<< 8)	| dat8[i+5];
+						image->comps[1].data[index+1] = ( dat8[i+6] <<4)		|(dat8[i+7]>>4);
+						image->comps[2].data[index+1] = ((dat8[i+7]& 0x0f)<< 8)	| dat8[i+8];
+						index+=2;
+					}else
+						break;
 				}
 			}
 			else if( Info.tiBps==16){
 				for (i=0; i<ssize; i+=6) {	/* 16 bits per pixel */
-					image->comps[0].data[index] = ( dat8[i+1] << 8 ) | dat8[i+0];	// R 
-					image->comps[1].data[index] = ( dat8[i+3] << 8 ) | dat8[i+2];	// G 
-					image->comps[2].data[index] = ( dat8[i+5] << 8 ) | dat8[i+4];	// B 
-					if(parameters->cp_cinema){/* Rounding to 12 bits*/
-						image->comps[0].data[index] = (image->comps[0].data[index] + 0x08) >> 4 ;
-						image->comps[1].data[index] = (image->comps[1].data[index] + 0x08) >> 4 ;
-						image->comps[2].data[index] = (image->comps[2].data[index] + 0x08) >> 4 ;
-					}
-					index++;
+					if(index < imgsize){
+						image->comps[0].data[index] = ( dat8[i+1] << 8 ) | dat8[i+0]; // R 
+						image->comps[1].data[index] = ( dat8[i+3] << 8 ) | dat8[i+2]; // G 
+						image->comps[2].data[index] = ( dat8[i+5] << 8 ) | dat8[i+4]; // B 
+						if(parameters->cp_cinema){/* Rounding to 12 bits*/
+							image->comps[0].data[index] = (image->comps[0].data[index] + 0x08) >> 4 ;
+							image->comps[1].data[index] = (image->comps[1].data[index] + 0x08) >> 4 ;
+							image->comps[2].data[index] = (image->comps[2].data[index] + 0x08) >> 4 ;
+						}
+						index++;
+					}else
+						break;
 				}
 			}
 			else if ( Info.tiBps==8){
 				for (i=0; i<ssize; i+=3) {	/* 8 bits per pixel */
-					image->comps[0].data[index] = dat8[i+0];	// R 
-					image->comps[1].data[index] = dat8[i+1];	// G 
-					image->comps[2].data[index] = dat8[i+2];	// B 
-					if(parameters->cp_cinema){/* Rounding to 12 bits*/
-						image->comps[0].data[index] = image->comps[0].data[index] << 4 ;
-						image->comps[1].data[index] = image->comps[1].data[index] << 4 ;
-						image->comps[2].data[index] = image->comps[2].data[index] << 4 ;
-					}
-					index++;
+					if(index < imgsize){
+						image->comps[0].data[index] = dat8[i+0];// R 
+						image->comps[1].data[index] = dat8[i+1];// G 
+						image->comps[2].data[index] = dat8[i+2];// B 
+						if(parameters->cp_cinema){/* Rounding to 12 bits*/
+							image->comps[0].data[index] = image->comps[0].data[index] << 4 ;
+							image->comps[1].data[index] = image->comps[1].data[index] << 4 ;
+							image->comps[2].data[index] = image->comps[2].data[index] << 4 ;
+						}
+						index++;
+					}else
+						break;
 				}
 			}
 			else{
-				fprintf(stderr,"Bits=%d, Only 8,12,16 bits implemented\n",Info.tiBps);
+				fprintf(stderr,"TIFF file creation. Bits=%d, Only 8,12,16 bits implemented\n",Info.tiBps);
 				fprintf(stderr,"Aborting\n");
 				return NULL;
 			}
@@ -1394,6 +1884,7 @@ opj_image_t* tiftoimage(char *filename, opj_cparameters_t *parameters)
 		strip_size = 0;
 		strip_size = TIFFStripSize(tif);
 		index = 0;
+		imgsize = image->comps[0].w * image->comps[0].h ;
 		/* Read the Image components*/
 		for (strip = 0; strip < TIFFNumberOfStrips(tif); strip++) {
 			unsigned char *dat8;
@@ -1403,25 +1894,34 @@ opj_image_t* tiftoimage(char *filename, opj_cparameters_t *parameters)
 
 			if (Info.tiBps==12){
 				for (i=0; i<ssize; i+=3) {	/* 12 bits per pixel*/
-					image->comps[0].data[index] = ( dat8[i+0]<<4 )				|(dat8[i+1]>>4) ;
-					image->comps[0].data[index] = ((dat8[i+1]& 0x0f)<< 8)	| dat8[i+2];
-					index+=2;
+					if(index < imgsize){
+						image->comps[0].data[index]   = ( dat8[i+0]<<4 )		|(dat8[i+1]>>4) ;
+						image->comps[0].data[index+1] = ((dat8[i+1]& 0x0f)<< 8)	| dat8[i+2];
+						index+=2;
+					}else
+						break;
 				}
 			}
 			else if( Info.tiBps==16){
 				for (i=0; i<ssize; i+=2) {	/* 16 bits per pixel */
-					image->comps[0].data[index] = ( dat8[i+1] << 8 ) | dat8[i+0];
-					index++;
+					if(index < imgsize){
+						image->comps[0].data[index] = ( dat8[i+1] << 8 ) | dat8[i+0];
+						index++;
+					}else
+						break;
 				}
 			}
 			else if ( Info.tiBps==8){
 				for (i=0; i<ssize; i+=1) {	/* 8 bits per pixel */
-					image->comps[0].data[index] = dat8[i+0];
-					index++;
+					if(index < imgsize){
+						image->comps[0].data[index] = dat8[i+0];
+						index++;
+					}else
+						break;
 				}
 			}
 			else{
-				fprintf(stderr,"Bits=%d, Only 8,12,16 bits implemented\n",Info.tiBps);
+				fprintf(stderr,"TIFF file creation. Bits=%d, Only 8,12,16 bits implemented\n",Info.tiBps);
 				fprintf(stderr,"Aborting\n");
 				return NULL;
 			}
@@ -1430,9 +1930,209 @@ opj_image_t* tiftoimage(char *filename, opj_cparameters_t *parameters)
 		_TIFFfree(buf);
 		TIFFClose(tif);
 	}else{
-		fprintf(stderr,"False color format. Only RGB & Grayscale has been implemented\n");
+		fprintf(stderr,"TIFF file creation. Bad color format. Only RGB & Grayscale has been implemented\n");
 		fprintf(stderr,"Aborting\n");
 		return NULL;
 	}
 	return image;
+}
+
+/* -->> -->> -->> -->>
+
+	RAW IMAGE FORMAT
+
+ <<-- <<-- <<-- <<-- */
+
+opj_image_t* rawtoimage(const char *filename, opj_cparameters_t *parameters, raw_cparameters_t *raw_cp) {
+	int subsampling_dx = parameters->subsampling_dx;
+	int subsampling_dy = parameters->subsampling_dy;
+
+	FILE *f = NULL;
+	int i, compno, numcomps, w, h;
+	OPJ_COLOR_SPACE color_space;
+	opj_image_cmptparm_t *cmptparm;	
+	opj_image_t * image = NULL;
+	unsigned short ch;
+	
+	if((! (raw_cp->rawWidth & raw_cp->rawHeight & raw_cp->rawComp & raw_cp->rawBitDepth)) == 0)
+	{
+		fprintf(stderr,"\nError: invalid raw image parameters\n");
+		fprintf(stderr,"Please use the Format option -F:\n");
+		fprintf(stderr,"-F rawWidth,rawHeight,rawComp,rawBitDepth,s/u (Signed/Unsigned)\n");
+		fprintf(stderr,"Example: -i lena.raw -o lena.j2k -F 512,512,3,8,u\n");
+		fprintf(stderr,"Aborting\n");
+		return NULL;
+	}
+
+	f = fopen(filename, "rb");
+	if (!f) {
+		fprintf(stderr, "Failed to open %s for reading !!\n", filename);
+		fprintf(stderr,"Aborting\n");
+		return NULL;
+	}
+	numcomps = raw_cp->rawComp;
+	color_space = CLRSPC_SRGB;
+	w = raw_cp->rawWidth;
+	h = raw_cp->rawHeight;
+	cmptparm = (opj_image_cmptparm_t*) malloc(numcomps * sizeof(opj_image_cmptparm_t));
+	
+	/* initialize image components */	
+	memset(&cmptparm[0], 0, numcomps * sizeof(opj_image_cmptparm_t));
+	for(i = 0; i < numcomps; i++) {		
+		cmptparm[i].prec = raw_cp->rawBitDepth;
+		cmptparm[i].bpp = raw_cp->rawBitDepth;
+		cmptparm[i].sgnd = raw_cp->rawSigned;
+		cmptparm[i].dx = subsampling_dx;
+		cmptparm[i].dy = subsampling_dy;
+		cmptparm[i].w = w;
+		cmptparm[i].h = h;
+	}
+	/* create the image */
+	image = opj_image_create(numcomps, &cmptparm[0], color_space);
+	if(!image) {
+		fclose(f);
+		return NULL;
+	}
+	/* set image offset and reference grid */
+	image->x0 = parameters->image_offset_x0;
+	image->y0 = parameters->image_offset_y0;
+	image->x1 = parameters->image_offset_x0 + (w - 1) *	subsampling_dx + 1;
+	image->y1 = parameters->image_offset_y0 + (h - 1) *	subsampling_dy + 1;
+
+	if(raw_cp->rawBitDepth <= 8)
+	{
+		unsigned char value = 0;
+		for(compno = 0; compno < numcomps; compno++) {
+			for (i = 0; i < w * h; i++) {
+				if (!fread(&value, 1, 1, f)) {
+					fprintf(stderr,"Error reading raw file. End of file probably reached.\n");
+					return NULL;
+				}
+				image->comps[compno].data[i] = raw_cp->rawSigned?(char)value:value;
+			}
+		}
+	}
+	else
+	{
+		unsigned short value = 0;
+		for(compno = 0; compno < numcomps; compno++) {
+			for (i = 0; i < w * h; i++) {
+				if (!fread(&value, 2, 1, f)) {
+					fprintf(stderr,"Error reading raw file. End of file probably reached.\n");
+					return NULL;
+				}
+				image->comps[compno].data[i] = raw_cp->rawSigned?(short)value:value;
+			}
+		}
+	}
+
+	if (fread(&ch, 1, 1, f)) {
+		fprintf(stderr,"Warning. End of raw file not reached... processing anyway\n");
+	}
+	fclose(f);
+
+	return image;
+}
+
+int imagetoraw(opj_image_t * image, const char *outfile)
+{
+	FILE *rawFile = NULL;
+	int compno;
+	int w, h;
+	int line, row;
+	int *ptr;
+
+	if((image->numcomps * image->x1 * image->y1) == 0)
+	{
+		fprintf(stderr,"\nError: invalid raw image parameters\n");
+		return 1;
+	}
+
+	rawFile = fopen(outfile, "wb");
+	if (!rawFile) {
+		fprintf(stderr, "Failed to open %s for writing !!\n", outfile);
+		return 1;
+	}
+
+	fprintf(stdout,"Raw image characteristics: %d components\n", image->numcomps);
+
+	for(compno = 0; compno < image->numcomps; compno++)
+	{
+		fprintf(stdout,"Component %d characteristics: %dx%dx%d %s\n", compno, image->comps[compno].w,
+			image->comps[compno].h, image->comps[compno].prec, image->comps[compno].sgnd==1 ? "signed": "unsigned");
+
+		w = image->comps[compno].w;
+		h = image->comps[compno].h;
+
+		if(image->comps[compno].prec <= 8)
+		{
+			if(image->comps[compno].sgnd == 1)
+			{
+				signed char curr;
+				int mask = (1 << image->comps[compno].prec) - 1;
+				ptr = image->comps[compno].data;
+				for (line = 0; line < h; line++) {
+					for(row = 0; row < w; row++)	{				
+						curr = (signed char) (*ptr & mask);
+						fwrite(&curr, sizeof(signed char), 1, rawFile);
+						ptr++;
+					}
+				}
+			}
+			else if(image->comps[compno].sgnd == 0)
+			{
+				unsigned char curr;
+				int mask = (1 << image->comps[compno].prec) - 1;
+				ptr = image->comps[compno].data;
+				for (line = 0; line < h; line++) {
+					for(row = 0; row < w; row++)	{	
+						curr = (unsigned char) (*ptr & mask);
+						fwrite(&curr, sizeof(unsigned char), 1, rawFile);
+						ptr++;
+					}
+				}
+			}
+		}
+		else if(image->comps[compno].prec <= 16)
+		{
+			if(image->comps[compno].sgnd == 1)
+			{
+				signed short int curr;
+				int mask = (1 << image->comps[compno].prec) - 1;
+				ptr = image->comps[compno].data;
+				for (line = 0; line < h; line++) {
+					for(row = 0; row < w; row++)	{					
+						curr = (signed short int) (*ptr & mask);
+						fwrite(&curr, sizeof(signed short int), 1, rawFile);
+						ptr++;
+					}
+				}
+			}
+			else if(image->comps[compno].sgnd == 0)
+			{
+				unsigned short int curr;
+				int mask = (1 << image->comps[compno].prec) - 1;
+				ptr = image->comps[compno].data;
+				for (line = 0; line < h; line++) {
+					for(row = 0; row < w; row++)	{				
+						curr = (unsigned short int) (*ptr & mask);
+						fwrite(&curr, sizeof(unsigned short int), 1, rawFile);
+						ptr++;
+					}
+				}
+			}
+		}
+		else if (image->comps[compno].prec <= 32)
+		{
+			fprintf(stderr,"More than 16 bits per component no handled yet\n");
+			return 1;
+		}
+		else
+		{
+			fprintf(stderr,"Error: invalid precision: %d\n", image->comps[compno].prec);
+			return 1;
+		}
+	}
+	fclose(rawFile);
+	return 0;
 }

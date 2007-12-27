@@ -98,11 +98,17 @@
 
 #include <wx/imaglist.h>
 
+#include "wx/toolbar.h"
+#include "wx/artprov.h"
+
 #include "libopenjpeg/openjpeg.h"
 
 #include "imagj2k.h"
 #include "imagjp2.h"
 #include "imagmj2.h"
+#ifdef USE_MXF
+#include "imagmxf.h"
+#endif // USE_MXF
 
 #ifdef __WXMSW__
 typedef unsigned __int64 int8byte;
@@ -128,6 +134,7 @@ typedef unsigned long long int8byte;
 #define OPJ_APPLICATION_VERSION		wxT("0.3 alpha")
 #define OPJ_APPLICATION_TITLEBAR	OPJ_APPLICATION_NAME wxT(" ") OPJ_APPLICATION_VERSION
 #define OPJ_APPLICATION_COPYRIGHT	wxT("(C) 2007, Giuseppe Baruffa")
+#define OPJ_APPLICATION_VENDOR      wxT("OpenJPEG")
 
 #ifdef __WXMSW__
 #define OPJ_APPLICATION_PLATFORM    wxT("Windows")
@@ -137,10 +144,27 @@ typedef unsigned long long int8byte;
 #define OPJ_APPLICATION_PLATFORM    wxT("Linux")
 #endif
 
+#define OPJ_FRAME_WIDTH   800
+#define OPJ_FRAME_HEIGHT  600
+
+#define OPJ_BROWSER_WIDTH 300
+#define OPJ_PEEKER_HEIGHT 130
+
 #define OPJ_CANVAS_BORDER 10
 #define OPJ_CANVAS_COLOUR *wxWHITE
 
+
+
+#ifdef USE_JPWL
+
+//#define MYJPWL_MAX_NO_TILESPECS JPWL_MAX_NO_TILESPECS
+#define MYJPWL_MAX_NO_TILESPECS 4
+
+#endif // USE_JPWL
+
+
 class OPJDecoThread;
+class OPJEncoThread;
 class OPJParseThread;
 WX_DEFINE_ARRAY_PTR(wxThread *, wxArrayThread);
 class OPJChildFrame;
@@ -158,23 +182,24 @@ class OPJViewerApp: public wxApp
 
 		// other methods
 		bool OnInit(void);
+		int OnExit(void);
 		void SetShowImages(bool show) { m_showImages = show; }
 		bool ShowImages() const { return m_showImages; }
 		void ShowCmdLine(const wxCmdLineParser& parser);
 
 		// all the threads currently alive - as soon as the thread terminates, it's
 		// removed from the array
-		wxArrayThread m_deco_threads, m_parse_threads;
+		wxArrayThread m_deco_threads, m_parse_threads, m_enco_threads;
 
 		// crit section protects access to all of the arrays below
-		wxCriticalSection m_deco_critsect, m_parse_critsect;
+		wxCriticalSection m_deco_critsect, m_parse_critsect, m_enco_critsect;
 
 		// semaphore used to wait for the threads to exit, see OPJFrame::OnQuit()
-		wxSemaphore m_deco_semAllDone, m_parse_semAllDone;
+		wxSemaphore m_deco_semAllDone, m_parse_semAllDone, m_enco_semAllDone;
 
 		// the last exiting thread should post to m_semAllDone if this is true
 		// (protected by the same m_critsect)
-		bool m_deco_waitingUntilAllDone, m_parse_waitingUntilAllDone;
+		bool m_deco_waitingUntilAllDone, m_parse_waitingUntilAllDone, m_enco_waitingUntilAllDone;
 
 		// the list of all filenames written in the command line
 		wxArrayString m_filelist;
@@ -183,12 +208,35 @@ class OPJViewerApp: public wxApp
 		int m_resizemethod;
 
 		// decoding engine parameters
-		bool m_enabledeco;
+		bool m_enabledeco, m_enableparse;
 		int m_reducefactor, m_qualitylayers, m_components, m_framenum;
 #ifdef USE_JPWL
-		bool m_enablejpwl;
+		bool m_enablejpwl, m_enablejpwle;
 		int m_expcomps, m_maxtiles;
+		int m_framewidth, m_frameheight;
 #endif // USE_JPWL
+
+		// encoding engine parameters
+		wxString m_subsampling, m_origin, m_rates, m_comment, m_index, m_quality;
+		wxString m_cbsize, m_prsize, m_tsize, m_torigin, m_poc;
+		bool m_enablecomm, m_enableidx, m_multicomp, m_irreversible, m_enablesop, m_enableeph;
+		bool m_enablebypass, m_enablereset, m_enablerestart, m_enablevsc, m_enableerterm;
+		bool m_enablesegmark, m_enablepoc;
+		bool m_enablequality;
+		int m_resolutions, m_progression;
+#ifdef USE_JPWL
+		int m_hprotsel[MYJPWL_MAX_NO_TILESPECS], m_pprotsel[MYJPWL_MAX_NO_TILESPECS];
+		int m_htileval[MYJPWL_MAX_NO_TILESPECS], m_ptileval[MYJPWL_MAX_NO_TILESPECS],
+			m_ppackval[MYJPWL_MAX_NO_TILESPECS];
+		int m_sensisel[MYJPWL_MAX_NO_TILESPECS], m_stileval[MYJPWL_MAX_NO_TILESPECS];
+#endif // USE_JPWL
+
+		// some layout settings
+		bool m_showtoolbar, m_showbrowser, m_showpeeker;
+		int m_browserwidth, m_peekerheight;
+
+		// application configuration
+		wxConfig *OPJconfig; 
 
 	// private methods and variables
 	private:
@@ -221,10 +269,11 @@ class OPJCanvas: public wxScrolledWindow
 #endif //__WXGTK__
 		}
 		OPJDecoThread *CreateDecoThread(void);
+		OPJEncoThread *CreateEncoThread(void);
 		OPJChildFrame *m_childframe;
 
 		wxBitmap  m_image, m_image100;
-		wxFileName m_fname;
+		wxFileName m_fname, m_savename;
 		long m_zooml;
 
 	DECLARE_EVENT_TABLE()
@@ -245,10 +294,10 @@ class OPJMarkerData : public wxTreeItemData
 		const wxChar *GetDesc1() const { return m_desc.c_str(); }
 		const wxChar *GetDesc2() const { return m_filestring.c_str(); }
 		wxFileOffset m_start, m_length;
+		wxString m_desc;
 
 	// private methods and variables
 	private:
-		wxString m_desc;
 		wxString m_filestring;
 };
 
@@ -364,17 +413,33 @@ class OPJFrame: public wxMDIParentFrame
 	void OnSize(wxSizeEvent& WXUNUSED(event));
     void OnAbout(wxCommandEvent& WXUNUSED(event));
     void OnFileOpen(wxCommandEvent& WXUNUSED(event));
+    void OnFileSaveAs(wxCommandEvent& WXUNUSED(event));
+    void OnMemoryOpen(wxCommandEvent& WXUNUSED(event));
     void OnQuit(wxCommandEvent& WXUNUSED(event));
     void OnClose(wxCommandEvent& WXUNUSED(event));
     void OnZoom(wxCommandEvent& WXUNUSED(event));
 	void OnFit(wxCommandEvent& WXUNUSED(event));
 	void OnToggleBrowser(wxCommandEvent& WXUNUSED(event));
 	void OnTogglePeeker(wxCommandEvent& WXUNUSED(event));
+	void OnToggleToolbar(wxCommandEvent& WXUNUSED(event));
 	void OnReload(wxCommandEvent& event);
+	void OnPrevFrame(wxCommandEvent& event);
+	void OnHomeFrame(wxCommandEvent& event);
+	void OnNextFrame(wxCommandEvent& event);
+	void OnLessLayers(wxCommandEvent& event);
+	void OnAllLayers(wxCommandEvent& event);
+	void OnMoreLayers(wxCommandEvent& event);
+	void OnLessRes(wxCommandEvent& event);
+	void OnFullRes(wxCommandEvent& event);
+	void OnMoreRes(wxCommandEvent& event);
+	void OnPrevComp(wxCommandEvent& event);
+	void OnAllComps(wxCommandEvent& event);
+	void OnNextComp(wxCommandEvent& event);
 	void OnSetsEnco(wxCommandEvent& event);
 	void OnSetsDeco(wxCommandEvent& event);
 	void OnSashDrag(wxSashEvent& event);
 	void OpenFiles(wxArrayString paths, wxArrayString filenames);
+	void SaveFile(wxArrayString paths, wxArrayString filenames);
 	void OnNotebook(wxNotebookEvent& event);
 	void Rescale(int scale, OPJChildFrame *child);
 
@@ -382,6 +447,7 @@ class OPJFrame: public wxMDIParentFrame
 	OPJChildFrameHash m_childhash;
     wxSashLayoutWindow* markerTreeWindow;
     wxSashLayoutWindow* loggingWindow;
+	wxToolBar* tool_bar;
     void Resize(int number);
 	wxNotebook *m_bookCtrl;
 	wxNotebook *m_bookCtrlbottom;
@@ -429,17 +495,33 @@ enum {
 	OPJFRAME_FILEEXIT = wxID_EXIT,
 	OPJFRAME_HELPABOUT = wxID_ABOUT,
 	OPJFRAME_FILEOPEN,
+	OPJFRAME_MEMORYOPEN,
+	OPJFRAME_FILESAVEAS,
 	OPJFRAME_FILETOGGLEB,
 	OPJFRAME_FILETOGGLEP,
+	OPJFRAME_FILETOGGLET,
 	OPJFRAME_VIEWZOOM,
 	OPJFRAME_VIEWFIT,
 	OPJFRAME_VIEWRELOAD,
+	OPJFRAME_VIEWPREVFRAME,
+	OPJFRAME_VIEWHOMEFRAME,
+	OPJFRAME_VIEWNEXTFRAME,
+	OPJFRAME_VIEWLESSLAYERS,
+	OPJFRAME_VIEWALLLAYERS,
+	OPJFRAME_VIEWMORELAYERS,
+	OPJFRAME_VIEWLESSRES,
+	OPJFRAME_VIEWFULLRES,
+	OPJFRAME_VIEWMORERES,
+	OPJFRAME_VIEWPREVCOMP,
+	OPJFRAME_VIEWALLCOMPS,
+	OPJFRAME_VIEWNEXTCOMP,
 	OPJFRAME_FILECLOSE,
 	OPJFRAME_SETSENCO,
 	OPJFRAME_SETSDECO,
 
 	OPJFRAME_BROWSEWIN = 10000,
-	OPJFRAME_LOGWIN
+	OPJFRAME_LOGWIN,
+	OPJFRAME_TOOLBAR
 };
 
 
@@ -492,6 +574,26 @@ enum
     TreeTest_Ctrl = 1000,
 	BOTTOM_NOTEBOOK_ID,
 	LEFT_NOTEBOOK_ID
+};
+
+class OPJEncoThread : public wxThread
+{
+public:
+    OPJEncoThread(OPJCanvas *canvas);
+
+    // thread execution starts here
+    virtual void *Entry();
+
+    // called when the thread exits - whether it terminates normally or is
+    // stopped with Delete() (but not when it is Kill()ed!)
+    virtual void OnExit();
+
+    // write something to the text control
+    void WriteText(const wxString& text);
+
+public:
+    unsigned m_count;
+    OPJCanvas *m_canvas;
 };
 
 class OPJDecoThread : public wxThread
@@ -569,21 +671,48 @@ public:
 	wxBookCtrlBase* m_settingsNotebook;
 
     wxPanel* CreateMainSettingsPage(wxWindow* parent);
-    wxPanel* CreatePart1SettingsPage(wxWindow* parent);
+    wxPanel* CreatePart1_1SettingsPage(wxWindow* parent);
+    wxPanel* CreatePart1_2SettingsPage(wxWindow* parent);
 /*    wxPanel* CreatePart3SettingsPage(wxWindow* parent);*/
+	void OnEnableComm(wxCommandEvent& event);
+	void OnEnableIdx(wxCommandEvent& event);
+	void OnEnablePoc(wxCommandEvent& event);
+	void OnRadioQualityRate(wxCommandEvent& event);
 #ifdef USE_JPWL
 	void OnEnableJPWL(wxCommandEvent& event);
-/*    wxPanel* CreatePart11SettingsPage(wxWindow* parent);
-	wxCheckBox *m_enablejpwlCheck;*/
+	wxPanel* CreatePart11SettingsPage(wxWindow* parent);
+	/*wxCheckBox *m_enablejpwlCheck;*/
+	wxChoice *m_hprotChoice[MYJPWL_MAX_NO_TILESPECS];
+	wxSpinCtrl *m_htileCtrl[MYJPWL_MAX_NO_TILESPECS];
+	wxChoice *m_pprotChoice[MYJPWL_MAX_NO_TILESPECS];
+	wxSpinCtrl *m_ptileCtrl[MYJPWL_MAX_NO_TILESPECS];
+	wxSpinCtrl *m_ppackCtrl[MYJPWL_MAX_NO_TILESPECS];
+	wxChoice *m_sensiChoice[MYJPWL_MAX_NO_TILESPECS];
+	wxSpinCtrl *m_stileCtrl[MYJPWL_MAX_NO_TILESPECS];
+	void OnHprotSelect(wxCommandEvent& event);
+	void OnPprotSelect(wxCommandEvent& event);
+	void OnSensiSelect(wxCommandEvent& event);
 #endif // USE_JPWL
 
+	wxTextCtrl *m_subsamplingCtrl, *m_originCtrl, *m_rateCtrl, *m_commentCtrl;
+	wxRadioButton *m_rateRadio, *m_qualityRadio;
+	wxTextCtrl *m_indexCtrl, *m_qualityCtrl, *m_cbsizeCtrl, *m_prsizeCtrl, *m_pocCtrl;
+	wxTextCtrl *m_tsizeCtrl, *m_toriginCtrl;
+	wxRadioBox *progressionBox;
+	wxCheckBox *m_enablecommCheck, *m_enableidxCheck, *m_mctCheck, *m_irrevCheck;
+	wxCheckBox *m_sopCheck, *m_ephCheck, *m_enablebypassCheck, *m_enableresetCheck,
+		*m_enablerestartCheck, *m_enablevscCheck, *m_enableertermCheck, *m_enablesegmarkCheck;
+	wxCheckBox *m_enablepocCheck, *m_enablejpwlCheck;
+	wxSpinCtrl *m_resolutionsCtrl;
 
 protected:
 
     enum {
 		OPJENCO_ENABLEJPWL = 100,
 		OPJENCO_RATEFACTOR,
+		OPJENCO_RATERADIO,
 		OPJENCO_QUALITYFACTOR,
+		OPJENCO_QUALITYRADIO,
 		OPJENCO_RESNUMBER,
 		OPJENCO_CODEBLOCKSIZE,
 		OPJENCO_PRECINCTSIZE,
@@ -598,13 +727,25 @@ protected:
 		OPJENCO_ENABLEVSC,
 		OPJENCO_ENABLEERTERM,
 		OPJENCO_ENABLESEGMARK,
+		OPJENCO_ENABLEPOC,
 		OPJENCO_ROICOMP,
 		OPJENCO_ROISHIFT,
 		OPJENCO_IMORIG,
 		OPJENCO_TILORIG,
+		OPJENCO_ENABLEMCT,
 		OPJENCO_ENABLEIRREV,
 		OPJENCO_ENABLEINDEX,
-		OPJENCO_INDEXNAME
+		OPJENCO_INDEXNAME,
+		OPJENCO_POCSPEC,
+		OPJENCO_ENABLECOMM,
+		OPJENCO_COMMENTTEXT,
+		OPJENCO_HPROT,
+		OPJENCO_HTILE,
+		OPJENCO_PPROT,
+		OPJENCO_PTILE,
+		OPJENCO_PPACK,
+		OPJENCO_SENSI,
+		OPJENCO_STILE
     };
 
 DECLARE_EVENT_TABLE()
@@ -619,7 +760,7 @@ public:
     ~OPJDecoderDialog();
 
 	wxBookCtrlBase* m_settingsNotebook;
-	wxCheckBox *m_enabledecoCheck;
+	wxCheckBox *m_enabledecoCheck, *m_enableparseCheck;
 	wxSpinCtrl *m_reduceCtrl, *m_layerCtrl, *m_numcompsCtrl;
 	wxRadioBox* m_resizeBox;
 
@@ -644,6 +785,7 @@ protected:
 		OPJDECO_QUALITYLAYERS,
 		OPJDECO_NUMCOMPS,
 		OPJDECO_ENABLEDECO,
+		OPJDECO_ENABLEPARSE,
 		OPJDECO_ENABLEJPWL,
 		OPJDECO_EXPCOMPS,
 		OPJDECO_MAXTILES,

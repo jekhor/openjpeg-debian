@@ -32,6 +32,7 @@
 #ifdef USE_JPWL
 
 #include "../libopenjpeg/opj_includes.h"
+#include <limits.h>
 
 /** Minimum and maximum values for the double->pfp conversion */
 #define MIN_V1 0.0
@@ -128,21 +129,26 @@ int jpwl_epbs_add(opj_j2k_t *j2k, jpwl_marker_t *jwmarker, int *jwmarker_num,
 	while (post_len > 0) {
 
 		/* maximum postlen in order to respect EPB size
-		(we use 65450 instead of 65535 for keeping room for EPB parms)*/
+		(we use JPWL_MAXIMUM_EPB_ROOM instead of 65535 for keeping room for EPB parms)*/
 		/*      (message word size)    *            (number of containable parity words)  */
-		max_postlen = k_post * (unsigned long int) floor(65450.0 / (double) (n_post - k_post));
+		max_postlen = k_post * (unsigned long int) floor((double) JPWL_MAXIMUM_EPB_ROOM / (double) (n_post - k_post));
 
 		/* maximum postlen in order to respect EPB size */
 		if (*idx == 0)
-			/* (we use (65500 - L2) instead of 65535 for keeping room for EPB parms + pre-data) */
+			/* (we use (JPWL_MAXIMUM_EPB_ROOM - L2) instead of 65535 for keeping room for EPB parms + pre-data) */
 			/*      (message word size)    *                   (number of containable parity words)  */
-			max_postlen = k_post * (unsigned long int) floor((double) (65500 - L2) / (double) (n_post - k_post));
+			max_postlen = k_post * (unsigned long int) floor((double) (JPWL_MAXIMUM_EPB_ROOM - L2) / (double) (n_post - k_post));
 
 		else
-			/* (we use 65500 instead of 65535 for keeping room for EPB parms) */
+			/* (we use JPWL_MAXIMUM_EPB_ROOM instead of 65535 for keeping room for EPB parms) */
 			/*      (message word size)    *            (number of containable parity words)  */
-			max_postlen = k_post * (unsigned long int) floor(65500.0 / (double) (n_post - k_post));
+			max_postlen = k_post * (unsigned long int) floor((double) JPWL_MAXIMUM_EPB_ROOM / (double) (n_post - k_post));
 
+		/* null protection case */
+		/* the max post length can be as large as the LDPepb field can host */
+		if (hprot == 0)
+			max_postlen = INT_MAX;
+		
 		/* length to use */
 		dL4 = min(max_postlen, post_len);
 
@@ -289,7 +295,7 @@ jpwl_epb_ms_t *jpwl_epb_create(opj_j2k_t *j2k, bool latest, bool packed, int til
 	return epb;
 }
 
-void jpwl_epb_write(jpwl_epb_ms_t *epb, unsigned char *buf) {
+void jpwl_epb_write(opj_j2k_t *j2k, jpwl_epb_ms_t *epb, unsigned char *buf) {
 
 	/* Marker */
 	*(buf++) = (unsigned char) (J2K_MS_EPB >> 8); 
@@ -317,6 +323,10 @@ void jpwl_epb_write(jpwl_epb_ms_t *epb, unsigned char *buf) {
 	/* Data */
 	/*memcpy(buf, epb->data, (size_t) epb->Lepb - 11);*/
 	memset(buf, 0, (size_t) epb->Lepb - 11);
+
+	/* update markers struct */
+	j2k_add_marker(j2k->cstr_info, J2K_MS_EPB, -1, epb->Lepb + 2);
+
 };
 
 
@@ -793,7 +803,7 @@ bool jpwl_epb_correct(opj_j2k_t *j2k, unsigned char *buffer, int type, int pre_l
 	/* Initialize RS structures */
 	P = n_pre - k_pre;
 	NN_P = NN - P;
-	tt = (int) floor((float) P / 2.0F);
+	tt = (int) floor((float) P / 2.0F); /* correction capability of the code */
 	memset(codeword, 0, NN);
 	parityword = codeword + NN_P;
 	init_rs(NN_P);
@@ -834,7 +844,8 @@ bool jpwl_epb_correct(opj_j2k_t *j2k, unsigned char *buffer, int type, int pre_l
 			/*if (conn == NULL)
 				opj_event_msg(j2k->cinfo, EVT_INFO, "codeword is correctly decoded\n");*/
 
-		} else if (status < tt) {
+		} else if (status <= tt) {
+			/* it has corrected 0 <= errs <= tt */
 			/*if (conn == NULL)
 				opj_event_msg(j2k->cinfo, EVT_WARNING, "%d errors corrected in codeword\n", status);*/
 			errnum += status;
@@ -848,21 +859,21 @@ bool jpwl_epb_correct(opj_j2k_t *j2k, unsigned char *buffer, int type, int pre_l
 
 
 		/* advance parity buffer */
-		if ((status >= 0) && (status < tt))
+		if ((status >= 0) && (status <= tt))
 			/* copy back corrected parity only if all is OK */
 			memcpy(L2_buf, parityword, P);
 		L2_buf += P;
 
 		/* advance message buffer */
 		if (remaining < k_pre) {
-			if ((status >= 0) && (status < tt))
+			if ((status >= 0) && (status <= tt))
 				/* copy back corrected data only if all is OK */
 				memcpy(L1_buf, codeword, remaining);
 			L1_buf += remaining;
 			remaining = 0;
 
 		} else {
-			if ((status >= 0) && (status < tt))
+			if ((status >= 0) && (status <= tt))
 				/* copy back corrected data only if all is OK */
 				memcpy(L1_buf, codeword, k_pre);
 			L1_buf += k_pre;
@@ -1043,7 +1054,7 @@ bool jpwl_epb_correct(opj_j2k_t *j2k, unsigned char *buffer, int type, int pre_l
 		/* Initialize RS structures */
 		P = n_post - k_post;
 		NN_P = NN - P;
-		tt = (int) floor((float) P / 2.0F);
+		tt = (int) floor((float) P / 2.0F); /* again, correction capability */
 		memset(codeword, 0, NN);
 		parityword = codeword + NN_P;
 		init_rs(NN_P);
@@ -1080,7 +1091,7 @@ bool jpwl_epb_correct(opj_j2k_t *j2k, unsigned char *buffer, int type, int pre_l
 				/*if (conn == NULL)
 					opj_event_msg(j2k->cinfo, EVT_INFO, "codeword is correctly decoded\n");*/
 
-			} else if (status < tt) {
+			} else if (status <= tt) {
 				/*if (conn == NULL)
 					opj_event_msg(j2k->cinfo, EVT_WARNING, "%d errors corrected in codeword\n", status);*/
 				errnum += status;
@@ -1094,21 +1105,21 @@ bool jpwl_epb_correct(opj_j2k_t *j2k, unsigned char *buffer, int type, int pre_l
 
 
 			/* advance parity buffer */
-			if ((status >= 0) && (status < tt))
+			if ((status >= 0) && (status <= tt))
 				/* copy back corrected data only if all is OK */
 				memcpy(L3_buf, parityword, P);
 			L3_buf += P;
 
 			/* advance message buffer */
 			if (remaining < k_post) {
-				if ((status >= 0) && (status < tt))
+				if ((status >= 0) && (status <= tt))
 					/* copy back corrected data only if all is OK */
 					memcpy(L4_buf, codeword, remaining);
 				L4_buf += remaining;
 				remaining = 0;
 
 			} else {
-				if ((status >= 0) && (status < tt))
+				if ((status >= 0) && (status <= tt))
 					/* copy back corrected data only if all is OK */
 					memcpy(L4_buf, codeword, k_post);
 				L4_buf += k_post;
@@ -1138,7 +1149,7 @@ bool jpwl_epb_correct(opj_j2k_t *j2k, unsigned char *buffer, int type, int pre_l
 	return true;
 }
 
-void jpwl_epc_write(jpwl_epc_ms_t *epc, unsigned char *buf) {
+void jpwl_epc_write(opj_j2k_t *j2k, jpwl_epc_ms_t *epc, unsigned char *buf) {
 
 	/* Marker */
 	*(buf++) = (unsigned char) (J2K_MS_EPC >> 8); 
@@ -1164,6 +1175,10 @@ void jpwl_epc_write(jpwl_epc_ms_t *epc, unsigned char *buf) {
 	/* Data */
 	/*memcpy(buf, epc->data, (size_t) epc->Lepc - 9);*/
 	memset(buf, 0, (size_t) epc->Lepc - 9);
+
+	/* update markers struct */
+	j2k_add_marker(j2k->cstr_info, J2K_MS_EPC, -1, epc->Lepc + 2);
+
 };
 
 int jpwl_esds_add(opj_j2k_t *j2k, jpwl_marker_t *jwmarker, int *jwmarker_num,
@@ -1215,7 +1230,7 @@ jpwl_esd_ms_t *jpwl_esd_create(opj_j2k_t *j2k, int comp, unsigned char addrm, un
 		if (ad_size == 0)
 			/* if there are more than 66% of (2^16 - 1) bytes, switch to 4 bytes
 			 (we keep space for possible EPBs being inserted) */
-			ad_size = (j2k->image_info->codestream_size > (1 * 65535 / 3)) ? 4 : 2;
+			ad_size = (j2k->cstr_info->codestream_size > (1 * 65535 / 3)) ? 4 : 2;
 		esd->sensval_size = ad_size + ad_size + se_size; 
 		break;
 
@@ -1224,7 +1239,7 @@ jpwl_esd_ms_t *jpwl_esd_create(opj_j2k_t *j2k, int comp, unsigned char addrm, un
 		/* auto sense address size */
 		if (ad_size == 0)
 			/* if there are more than 2^16 - 1 packets, switch to 4 bytes */
-			ad_size = (j2k->image_info->num > 65535) ? 4 : 2;
+			ad_size = (j2k->cstr_info->packno > 65535) ? 4 : 2;
 		esd->sensval_size = ad_size + ad_size + se_size; 
 		break;
 
@@ -1245,17 +1260,17 @@ jpwl_esd_ms_t *jpwl_esd_create(opj_j2k_t *j2k, int comp, unsigned char addrm, un
 		/* just based on the portions of a codestream */
 		case (0):
 			/* MH + no. of THs + no. of packets */
-			svalnum = 1 + (j2k->image_info->tw * j2k->image_info->th) * (1 + j2k->image_info->num);
+			svalnum = 1 + (j2k->cstr_info->tw * j2k->cstr_info->th) * (1 + j2k->cstr_info->packno);
 			break;
 
 		/* all the ones that are based on the packets */
 		default:
 			if (tileno < 0)
 				/* MH: all the packets and all the tiles info is written */
-				svalnum = j2k->image_info->tw * j2k->image_info->th * j2k->image_info->num;
+				svalnum = j2k->cstr_info->tw * j2k->cstr_info->th * j2k->cstr_info->packno;
 			else
 				/* TPH: only that tile info is written */
-				svalnum = j2k->image_info->num;
+				svalnum = j2k->cstr_info->packno;
 			break;
 
 		}
@@ -1355,26 +1370,26 @@ bool jpwl_esd_fill(opj_j2k_t *j2k, jpwl_esd_ms_t *esd, unsigned char *buf) {
 		buf += 7;
 
 	/* let's fill the data fields */
-	for (vv = (esd->tileno < 0) ? 0 : (j2k->image_info->num * esd->tileno); vv < esd->svalnum; vv++) {
+	for (vv = (esd->tileno < 0) ? 0 : (j2k->cstr_info->packno * esd->tileno); vv < esd->svalnum; vv++) {
 
-		int thistile = vv / j2k->image_info->num, thispacket = vv % j2k->image_info->num;
+		int thistile = vv / j2k->cstr_info->packno, thispacket = vv % j2k->cstr_info->packno;
 
 		/* skip for the hack some lines below */
-		if (thistile == j2k->image_info->tw * j2k->image_info->th)
+		if (thistile == j2k->cstr_info->tw * j2k->cstr_info->th)
 			break;
 
 		/* starting tile distortion */
 		if (thispacket == 0) {
-			TSE = j2k->image_info->tile[thistile].distotile;
-			oldMSE = TSE / j2k->image_info->tile[thistile].nbpix;
+			TSE = j2k->cstr_info->tile[thistile].distotile;
+			oldMSE = TSE / j2k->cstr_info->tile[thistile].numpix;
 			oldPSNR = 10.0 * log10(Omax2 / oldMSE);
 		}
 
 		/* TSE */
-		TSE -= j2k->image_info->tile[thistile].packet[thispacket].disto;
+		TSE -= j2k->cstr_info->tile[thistile].packet[thispacket].disto;
 
 		/* MSE */
-		MSE = TSE / j2k->image_info->tile[thistile].nbpix;
+		MSE = TSE / j2k->cstr_info->tile[thistile].numpix;
 
 		/* PSNR */
 		PSNR = 10.0 * log10(Omax2 / MSE);
@@ -1390,9 +1405,9 @@ bool jpwl_esd_fill(opj_j2k_t *j2k, jpwl_esd_ms_t *esd, unsigned char *buf) {
 		/* byte range */
 		case (1):
 			/* start address of packet */
-			addr1 = (j2k->image_info->tile[thistile].packet[thispacket].start_pos) & addrmask;
+			addr1 = (j2k->cstr_info->tile[thistile].packet[thispacket].start_pos) & addrmask;
 			/* end address of packet */
-			addr2 = (j2k->image_info->tile[thistile].packet[thispacket].end_pos) & addrmask;
+			addr2 = (j2k->cstr_info->tile[thistile].packet[thispacket].end_pos) & addrmask;
 			break;
 
 		/* packet range */
@@ -1416,7 +1431,7 @@ bool jpwl_esd_fill(opj_j2k_t *j2k, jpwl_esd_ms_t *esd, unsigned char *buf) {
 			if ((thistile == 0) && !doneMH) {
 				/* we have to manage MH addresses */
 				addr1 = 0; /* start of MH */
-				addr2 = j2k->image_info->main_head_end; /* end of MH */
+				addr2 = j2k->cstr_info->main_head_end; /* end of MH */
 				/* set special dvalue for this MH */
 				dvalue = -10.0;
 				doneMH = true; /* don't come here anymore */
@@ -1424,8 +1439,8 @@ bool jpwl_esd_fill(opj_j2k_t *j2k, jpwl_esd_ms_t *esd, unsigned char *buf) {
 
 			} else if (!doneTPH) {
 				/* we have to manage TPH addresses */
-				addr1 = j2k->image_info->tile[thistile].start_pos;
-				addr2 = j2k->image_info->tile[thistile].end_header;
+				addr1 = j2k->cstr_info->tile[thistile].start_pos;
+				addr2 = j2k->cstr_info->tile[thistile].end_header;
 				/* set special dvalue for this TPH */
 				dvalue = -1.0;
 				doneTPH = true; /* don't come here till the next tile */
@@ -1483,7 +1498,7 @@ bool jpwl_esd_fill(opj_j2k_t *j2k, jpwl_esd_ms_t *esd, unsigned char *buf) {
 			else
 				/* packet: first is most important, and then in decreasing order
 				down to the last, which counts for 1 */
-				dvalue = jpwl_pfp_to_double((unsigned short) (j2k->image_info->num - thispacket), esd->se_size);
+				dvalue = jpwl_pfp_to_double((unsigned short) (j2k->cstr_info->packno - thispacket), esd->se_size);
 			break;
 
 		/* MSE */
@@ -1554,7 +1569,7 @@ bool jpwl_esd_fill(opj_j2k_t *j2k, jpwl_esd_ms_t *esd, unsigned char *buf) {
 	return true;
 }
 
-void jpwl_esd_write(jpwl_esd_ms_t *esd, unsigned char *buf) {
+void jpwl_esd_write(opj_j2k_t *j2k, jpwl_esd_ms_t *esd, unsigned char *buf) {
 
 	/* Marker */
 	*(buf++) = (unsigned char) (J2K_MS_ESD >> 8); 
@@ -1579,6 +1594,10 @@ void jpwl_esd_write(jpwl_esd_ms_t *esd, unsigned char *buf) {
 	else
 		memset(buf, 0xAA, (size_t) esd->Lesd - 5);
 		/*memcpy(buf, esd->data, (size_t) esd->Lesd - 5);*/
+
+	/* update markers struct */
+	j2k_add_marker(j2k->cstr_info, J2K_MS_ESD, -1, esd->Lesd + 2);
+
 }
 
 unsigned short int jpwl_double_to_pfp(double V, int bytes) {
@@ -1656,8 +1675,8 @@ bool jpwl_update_info(opj_j2k_t *j2k, jpwl_marker_t *jwmarker, int jwmarker_num)
 	int mm;
 	unsigned long int addlen;
 
-	opj_image_info_t *info = j2k->image_info;
-	int tileno, packno, numtiles = info->th * info->tw, numpacks = info->num;
+	opj_codestream_info_t *info = j2k->cstr_info;
+	int tileno, tpno, packno, numtiles = info->th * info->tw, numpacks = info->packno;
 
 	if (!j2k || !jwmarker ) {
 		opj_event_msg(j2k->cinfo, EVT_ERROR, "J2K handle or JPWL markers list badly allocated\n");
@@ -1696,22 +1715,56 @@ bool jpwl_update_info(opj_j2k_t *j2k, jpwl_marker_t *jwmarker, int jwmarker_num)
 
 		/* end_pos: increment with markers before the end of this tile */
 		/* code is disabled, since according to JPWL no markers can be beyond TPH */
-		/*addlen = 0;
+		addlen = 0;
 		for (mm = 0; mm < jwmarker_num; mm++)
 			if (jwmarker[mm].pos < (unsigned long int) info->tile[tileno].end_pos)
-				addlen += jwmarker[mm].len + 2;*/
+				addlen += jwmarker[mm].len + 2;
 		info->tile[tileno].end_pos += addlen;
+
+		/* navigate through all the tile parts */
+		for (tpno = 0; tpno < info->tile[tileno].num_tps; tpno++) {
+
+			/* start_pos: increment with markers before SOT */
+			addlen = 0;
+			for (mm = 0; mm < jwmarker_num; mm++)
+				if (jwmarker[mm].pos < (unsigned long int) info->tile[tileno].tp[tpno].tp_start_pos)
+					addlen += jwmarker[mm].len + 2;
+			info->tile[tileno].tp[tpno].tp_start_pos += addlen;
+
+			/* end_header: increment with markers before of it */
+			addlen = 0;
+			for (mm = 0; mm < jwmarker_num; mm++)
+				if (jwmarker[mm].pos < (unsigned long int) info->tile[tileno].tp[tpno].tp_end_header)
+					addlen += jwmarker[mm].len + 2;
+			info->tile[tileno].tp[tpno].tp_end_header += addlen;
+
+			/* end_pos: increment with markers before the end of this tile part */
+			addlen = 0;
+			for (mm = 0; mm < jwmarker_num; mm++)
+				if (jwmarker[mm].pos < (unsigned long int) info->tile[tileno].tp[tpno].tp_end_pos)
+					addlen += jwmarker[mm].len + 2;
+			info->tile[tileno].tp[tpno].tp_end_pos += addlen;
+
+		}
 
 		/* navigate through all the packets in this tile */
 		for (packno = 0; packno < numpacks; packno++) {
 			
 			/* start_pos: increment with markers before the packet */
 			/* disabled for the same reason as before */
+			addlen = 0;
+			for (mm = 0; mm < jwmarker_num; mm++)
+				if (jwmarker[mm].pos <= (unsigned long int) info->tile[tileno].packet[packno].start_pos)
+					addlen += jwmarker[mm].len + 2;
+			info->tile[tileno].packet[packno].start_pos += addlen;
+
+			/* end_ph_pos: increment with markers before the packet */
+			/* disabled for the same reason as before */
 			/*addlen = 0;
 			for (mm = 0; mm < jwmarker_num; mm++)
-				if (jwmarker[mm].pos < (unsigned long int) info->tile[tileno].packet[packno].start_pos)
+				if (jwmarker[mm].pos < (unsigned long int) info->tile[tileno].packet[packno].end_ph_pos)
 					addlen += jwmarker[mm].len + 2;*/
-			info->tile[tileno].packet[packno].start_pos += addlen;
+			info->tile[tileno].packet[packno].end_ph_pos += addlen;
 
 			/* end_pos: increment if marker is before the end of packet */
 			/* disabled for the same reason as before */
@@ -1723,6 +1776,8 @@ bool jpwl_update_info(opj_j2k_t *j2k, jpwl_marker_t *jwmarker, int jwmarker_num)
 
 		}
 	}
+
+	/* reorder the markers list */
 
 	return true;
 }

@@ -1,0 +1,8 @@
+# Compulsory line, this is a version 3 file
+version=3
+# Upstream distibutes tarballs such as :- openjpeg_v1_3.tar.gz
+# We mangle the version to get back to a dotted version number
+# We must also be careful as there are binary packages that are postfixed with _linux etc
+# before the .tar.gz
+opts=uversionmangle=s/_/\./g http://www.openjpeg.org/index.php?menu=download openjpeg_v([0-9]*_[0-9]*).tar.gz
+

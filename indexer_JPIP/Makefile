@@ -1,6 +1,7 @@
 CC = gcc
 
-CFLAGS = -Wall $(EXTRA_CFLAGS)
+LDFLAGS = -lm
+CFLAGS = -Wall
 
 all: index_create
 

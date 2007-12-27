@@ -2,6 +2,11 @@ openjpeg (1.3-1) unstable; urgency=low
 
   * New upstream release
     - Drop SVN merge patch as we now are upto date and functional on AMD64
+    - Update debian/rules to match upstream changes to makefile
+    - Stop ignoring make errors and rm errors in debian/rules
+    - Fix build environment via dpatch to use -O0 or -O3 when requested, use -g to build library
+      and strip via dh_strip and build codecs against shared not static library
+    - Remove linkage against unused libs and add linkage against missing libs (via dpatch)
 
  -- Secondlife Debian Maintainers <secondlife-debian-maintainers@slupdate.byteme.org.uk>  Thu, 27 Dec 2007 16:25:12 +0000
 

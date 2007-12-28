@@ -7,54 +7,76 @@ Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universit
 	   © 2002-2003, Yannick Verschueren
 	   © 2003-2007, Francois-Olivier Devaux and Antonin Descampe
 	   © 2005, Herve Drolon, FreeImage Team
-	   © 2007, Callum Lerwick <seg@haxxed.com>
-Licence: other
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions
- are met:
- 1. Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- POSSIBILITY OF SUCH DAMAGE.
+Licence: BSD-2
 
 Files: debian/*
 Copyright: © 2007 Paul Hampson <Paul.Hampson@Pobox.com>
 	   © 2007 Robin Cornelius <robin.cornelius@gmail.com>
-Licence: other
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions
- are met:
- 1. Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
+Licence: BSD-2
 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- POSSIBILITY OF SUCH DAMAGE.
+Files: libopenjpeg/dwt.c
+Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+ 	   © 2002-2007, Professor Benoit Macq
+	   © 2001-2003, David Janssens
+	   © 2002-2003, Yannick Verschueren
+	   © 2003-2007, Francois-Olivier Devaux and Antonin Descampe
+	   © 2005, Herve Drolon, FreeImage Team
+	   © 2007, Jonathan Ballard <dzonatas@dzonux.net>
+	   © 2007, Callum Lerwick <seg@haxxed.com>
+Licence: BSD-2
 
+Files:  libopenjpeg/t1.c
+	libopenjpeg/t1_generate_luts.c
+Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+ 	   © 2002-2007, Professor Benoit Macq
+	   © 2001-2003, David Janssens
+	   © 2002-2003, Yannick Verschueren
+	   © 2003-2007, Francois-Olivier Devaux and Antonin Descampe
+	   © 2005, Herve Drolon, FreeImage Team
+	   © 2007, Callum Lerwick <seg@haxxed.com>
+Licence: BSD-2
+
+Files: libopenjpeg/image.c
+	libopenjpeg/image.h
+	libopenjpeg/event.h
+	libopenjpeg/event.c
+	libopenjpeg/j2k_lib.c
+	libopenjpeg/j2k_lib.h
+	libopenjpeg/openjpeg.c
+	libopenjpeg/opj_includes.h
+Copyright: © 2005, Herve Drolon, FreeImage Team
+Licence: BSD-2
+
+Files: libopenjpeg/ojp_malloc.h
+Copyright: © 2005, Herve Drolon, FreeImage Team
+	   © 2007, Callum Lerwick <seg@haxxed.com>
+Licence: BSD-2
+
+
+Files:  libopenjpeg/j2k.c
+	libopenjpeg/j2k.h
+	libopenjpeg/openjpeg.h
+	libopenjpeg/pi.c
+	libopenjpeg/tcd.c
+Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+ 	   © 2002-2007, Professor Benoit Macq
+ 	   © 2001-2003, David Janssens
+ 	   © 2002-2003, Yannick Verschueren
+ 	   © 2003-2007, Francois-Olivier Devaux and Antonin Descampe
+ 	   © 2005, Herve Drolon, FreeImage Team
+ 	   © 2006-2007, Parvatha Elangovan
+Licence: BSD-2
+
+Files:  libopenjpeg/jp2.h
+	libopenjpeg/jpt.c
+	libopenjpeg/jpt.h
+	libopenjpeg/raw.c
+	libopenjpeg/raw.h
+Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+ 	   © 2002-2007, Professor Benoit Macq
+ 	   © 2002-2003, Yannick Verschueren
+ 	   © 2005, Herve Drolon, FreeImage Team
+Licence: BSD-2
 
 Files:  OPJViewer/source/imagjp2.h 
 	OPJViewer/source/OPJViewer.cpp 
@@ -67,28 +89,7 @@ Files:  OPJViewer/source/imagjp2.h
 	OPJViewer/source/imagj2k.h 
 	OPJViewer/source/imagmj2.h
 Copyright: © 2007, Digital Signal Processing Laboratory, Università degli studi di Perugia (UPG), Italy
-Licence: other
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions
- are met:
- 1. Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- POSSIBILITY OF SUCH DAMAGE.
-
+Licence: BSD-2
 
 Files:	jpwl/jpwl_lib.c
 	jpwl/jpwl.h
@@ -103,28 +104,7 @@ Copyright: © 2001-2003, David Janssens
 	   © 2005, Hervé Drolon, FreeImage Team
 	   © 2002-2005, Communications and remote sensing Laboratory, Universite catholique de Louvain, Belgium
 	   © 2005-2006, Dept. of Electronic and Information Engineering, Universita' degli Studi di Perugia, Italy
-Licence: other
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions
- are met:
- 1. Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- POSSIBILITY OF SUCH DAMAGE.
-
+Licence: BSD-2
 
 Files:  jp3d/libjp3dvm/jp3d.c
 	jp3d/libjp3dvm/jp3d.h
@@ -146,27 +126,26 @@ Copyright: © 2001-2003, David Janssens
 	   © 2005, Hervé Drolon, FreeImage Team
 	   © 2002-2005, Communications and remote sensing Laboratory, Universite catholique de Louvain, Belgium
 	   © 2006, Mónica Díez García, Image Processing Laboratory, University of Valladolid, Spain
-Licence: other
- Redistribution and use in source and binary forms, with or without
- modification, are permitted provided that the following conditions
- are met:
- 1. Redistributions of source code must retain the above copyright
-    notice, this list of conditions and the following disclaimer.
- 2. Redistributions in binary form must reproduce the above copyright
-    notice, this list of conditions and the following disclaimer in the
-    documentation and/or other materials provided with the distribution.
+Licence: BSD-2
 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
- AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- POSSIBILITY OF SUCH DAMAGE.
+Files:  codec/convert.c
+	codec/j2k_to_image.c
+	codec/image_to_j2k.c
+Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+ 	   © 2002-2007, Professor Benoit Macq
+ 	   © 2001-2003, David Janssens
+ 	   © 2002-2003, Yannick Verschueren
+ 	   © 2003-2007, Francois-Olivier Devaux and Antonin Descampe
+ 	   © 2005, Herve Drolon, FreeImage Team
+ 	   © 2006-2007, Parvatha Elangovan
+Licence: BSD-2
+
+Files: codec/index.c
+	codec/index.h
+Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+	   © 2002-2007, Professor Benoit Macq
+	   © 2003-2007, Francois-Olivier Devaux 
+Licence: BSD-2
 
 
 Files:  mj2/mj2_to_metadata.h
@@ -207,7 +186,39 @@ Files:  mj2/compat/getopt.c
 	jp3d/codec/getopt.c
 	codec/compat/getopt.c
 Copyright: © 1987, 1993, 1994 The Regents of the University of California.  All rights reserved.
+Licence: BSD-4
+
+Files: j2kviewer/src/Exec.java
+Copyright: © 1997 Marty hall <hall@apl.jhu.edu>
 Licence: other
+ This appears in Core Web Programming from Prentice Hall Publishers, and may be 
+ freely used or adapted.
+
+
+Licence: BSD-2
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+ 
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
+ AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ POSSIBILITY OF SUCH DAMAGE.
+
+Licence: BSD-4
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
  are met:
@@ -235,11 +246,4 @@ Licence: other
  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  SUCH DAMAGE.
-
-Files: j2kviewer/src/Exec.java
-Copyright: © 1997 Marty hall <hall@apl.jhu.edu>
-Licence: other
- This appears in Core Web Programming from Prentice Hall Publishers, and may be 
- freely used or adapted.
-
 

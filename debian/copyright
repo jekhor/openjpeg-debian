@@ -147,6 +147,18 @@ Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universit
 	   © 2003-2007, Francois-Olivier Devaux 
 Licence: BSD-2
 
+Files:  mj2/frames_to_mj2.c 
+	mj2/mj2_to_frames.c
+	mj2/mj2.h
+Copyright: © 2003-2004, Francois-Olivier Devaux
+	   © 2002-2004,  Communications and remote sensing Laboratory, Universite catholique de Louvain, Belgium
+Licence: BSD-2
+
+Files:  mj2/mj2.c
+Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+	   © 2002-2007, Professor Benoit Macq
+	   © 2003-2007, Francois-Olivier Devaux
+Licence: BSD-2
 
 Files:  mj2/mj2_to_metadata.h
 	mj2/meta_out.c
@@ -158,6 +170,19 @@ Licence: other
  A non-exclusive copy of this code has been contributed to the Open JPEG project.
  Except for copyright, inclusion of the code within Open JPEG for distribution and use
  can be bound by the Open JPEG open-source license and disclaimer, expressed elsewhere.
+
+
+Files:  JavaOpenJPEG/JavaOpenJPEG.c
+	JavaOpenJPEG/JavaOpenJPEGDecoder.c 
+Copyright: © 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+	© 2002-2007, Professor Benoit Macq
+	© 2001-2003, David Janssens
+	© 2002-2003, Yannick Verschueren
+	© 2003-2007, Francois-Olivier Devaux and Antonin Descampe
+	© 2005, Herve Drolon, FreeImage Team 
+	© 2006-2007, Parvatha Elangovan
+	© 2007, Patrick Piscaglia (Telemis)
+Licence: BSD-2
 
 
 Files:	codec/dirent.h

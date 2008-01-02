@@ -5,6 +5,8 @@ Homepage: http://www.openjpeg.org
 Build-Depends: debhelper (>= 5), txt2man, dpatch (>= 2), libtiff4-dev
 Standards-Version: 3.7.3
 Section: libs
+XS-Vcs-Svn: svn://slupdate.byteme.org.uk/openjpeg/openjpeg/trunk
+XS-Vcs-Browser: http://slupdate.byteme.org.uk/svn
 
 Package: libopenjpeg-dev
 Section: libdevel

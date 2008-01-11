@@ -1,7 +1,6 @@
 Source: openjpeg
 Priority: extra
 Maintainer: Secondlife Debian Maintainers <secondlife-debian-maintainers@slupdate.byteme.org.uk>
-Changed-By: Robin Cornelius <robin.cornelius@gmail.com>
 Homepage: http://www.openjpeg.org
 Build-Depends: debhelper (>= 5), txt2man, dpatch (>= 2), libtiff4-dev
 Standards-Version: 3.7.3
@@ -41,3 +40,5 @@ Description: JPEG 2000 image compression codec tools distributed with the
  - j2k_to_image, decodes j2k, jp2 and jpt files to pgm, ppm, pnm, pgx and bmp
  - image_to_j2k, encodes pnm, pgm, pgx, bmp and ppm files to j2k and jp2
  - index_create, create jp2 with JPIP index file from a j2k file
+
+

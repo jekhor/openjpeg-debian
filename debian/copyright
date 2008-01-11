@@ -69,12 +69,12 @@ Files:  mj2/mj2_to_metadata.h
 	mj2/meta_out.h
 	mj2/mj2_to_metadata.c
 Copyright: Public domain
-Licence: other
- A non-exclusive copy of this code has been contributed to the Open JPEG 
- project. Except for copyright, inclusion of the code within Open JPEG for 
- distribution and use can be bound by the Open JPEG open-source license and 
- disclaimer. OpenJPEG licence follows eg BSD-2 :-
- 
+Licence: BSD-2
+ A non-exclusive copy of this code has been contributed to the OpenJPEG 
+ project. Except for copyright, inclusion of the code within OpenJPEG for 
+ distribution and use can be bound by the OpenJPEG open-source license and 
+ disclaimer :-
+  
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
  are met:
@@ -84,7 +84,7 @@ Licence: other
     notice, this list of conditions and the following disclaimer in the
     documentation and/or other materials provided with the distribution.
  
-
+ 
  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS `AS IS'
  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE

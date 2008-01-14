@@ -37,8 +37,8 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Description: JPEG 2000 image compression codec tools distributed with the 
  OpenJPEG library:
- - j2k_to_image, decodes j2k, jp2 and jpt files to pgm, ppm, pnm, pgx and bmp
- - image_to_j2k, encodes pnm, pgm, pgx, bmp and ppm files to j2k and jp2
- - index_create, create jp2 with JPIP index file from a j2k file
+  - j2k_to_image, decodes j2k, jp2 and jpt files to pgm, ppm, pnm, pgx and bmp
+  - image_to_j2k, encodes pnm, pgm, pgx, bmp and ppm files to j2k and jp2
+  - index_create, create jp2 with JPIP index file from a j2k file
 
 

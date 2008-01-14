@@ -31,6 +31,8 @@ realclean:
 	[ ! -f  indexer_JPIP/*.o ] || $(MAKE) -C indexer_JPIP clean
 	
 	rm -f indexer_JPIP/index_create
+	rm -f codec/image_to_j2k
+	rm -f codec/j2k_to_image
 	
 	$(MAKE) clean
 	

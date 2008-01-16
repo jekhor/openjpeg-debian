@@ -63,7 +63,7 @@ binary-arch: build install
 	dh_install --sourcedir=dist/
 	dh_installman
 	dh_link
-	dh_strip --dbg-package=libopenjpeg-dbg
+	dh_strip --dbg-package=libopenjpeg2-dbg
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs

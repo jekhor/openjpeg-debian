@@ -12,22 +12,22 @@ Package: libopenjpeg-dev
 Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
-Description: Development header files for applications wishing to use 
- libopenjpeg2, a JPEG 2000 image compression codec library.
+Description: Development files for libopenjpeg2, a JPEG 2000 image library.
+ This package contains the development files for libopenjpeg2.
 
 Package: libopenjpeg2
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}
-Description: JPEG 2000 image compression codec library, a codec library for 
- handling the JPEG 2000 image compression format.
+Description: JPEG 2000 image compression codec library
+ A codec library for handling the JPEG 2000 image compression format.
 
-Package: libopenjpeg-dbg
+Package: libopenjpeg2-dbg
 Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
-Description: Debug symbols for libopenjpeg2 a JPEG 2000 image compression codec 
- library. This package contains the debug symbols to match the runtime component
+Description: Debug symbols for libopenjpeg2 a JPEG 2000 image library. 
+ This package contains the debug symbols to match the runtime component
  of the OpenJPEG library, allowing debugging of a program using the OpenJPEG 
  library to usefully access details within the library itself.
 

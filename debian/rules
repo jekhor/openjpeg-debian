@@ -94,3 +94,14 @@ patch-stamp:
 unpatch:
 	dpatch deapply-all
 	rm -rf patch-stamp debian/patched
+
+# This seems a tad hackish, but it works and at least uses uscan to get the
+# latest version
+get-orig-source:
+	mkdir tmp
+	uscan --force-download --destdir tmp/ --rename
+	cd tmp && tar -xvzf openjpeg*.tar.gz
+	mv tmp/openjpeg*.tar.gz ..	
+	mv tmp/OpenJPEG*/* .
+	rm tmp/ -r
+

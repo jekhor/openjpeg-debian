@@ -98,6 +98,7 @@ unpatch:
 # This seems a tad hackish, but it works and at least uses uscan to get the
 # latest version
 get-orig-source:
+	rm -f -r tmp
 	mkdir tmp
 	uscan --force-download --destdir tmp/ --rename
 	cd tmp && tar -xvzf openjpeg*.tar.gz

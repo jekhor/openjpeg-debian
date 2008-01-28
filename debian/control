@@ -1,6 +1,7 @@
 Source: openjpeg
 Priority: extra
 Maintainer: Debian PhotoTools Maintainers <pkg-phototools-devel@lists.alioth.debian.org>
+Uploaders: Robin Cornelius <robin.cornelius@gmail.com>
 Homepage: http://www.openjpeg.org
 Build-Depends: debhelper (>= 5), txt2man, dpatch (>= 2), libtiff4-dev
 Standards-Version: 3.7.3
@@ -12,8 +13,9 @@ Package: libopenjpeg-dev
 Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
-Description: Development files for libopenjpeg2, a JPEG 2000 image library.
- This package contains the development files for libopenjpeg2.
+Description: Development files for libopenjpeg2, a JPEG 2000 image library
+ This package contains the development files for applications wishing to link 
+ against libopenjpeg2.
 
 Package: libopenjpeg2
 Section: libs
@@ -26,7 +28,7 @@ Package: libopenjpeg2-dbg
 Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
-Description: Debug symbols for libopenjpeg2 a JPEG 2000 image library. 
+Description: Debug symbols for libopenjpeg2, a JPEG 2000 image library 
  This package contains the debug symbols to match the runtime component
  of the OpenJPEG library, allowing debugging of a program using the OpenJPEG 
  library to usefully access details within the library itself.

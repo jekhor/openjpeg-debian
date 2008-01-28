@@ -12,7 +12,7 @@ openjpeg (1.3-1) unstable; urgency=low
     - Change debian/copyright to take advantage of proposed format and ensure
       all authors and licences are listed.
 
- -- Secondlife Debian Maintainers <secondlife-debian-maintainers@slupdate.byteme.org.uk>  Thu, 27 Dec 2007 16:25:12 +0000
+ -- Robin Cornelius <robin.cornelius@gmail.com>  Thu, 27 Dec 2007 16:25:12 +0000
 
 openjpeg (1.2-3) unstable; urgency=low
 

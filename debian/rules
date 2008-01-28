@@ -23,20 +23,13 @@ clean: realclean unpatch
 realclean:
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp
-	rm -f libopenjpeg.so
-	rm -f libopenjpeg.a.nopic
 
 	[ ! -f  codec/*.o ] || $(MAKE) -C codec clean
 	[ ! -f  indexer_JPIP/*.o ] || $(MAKE) -C indexer_JPIP clean
 	
-	rm -f indexer_JPIP/index_create
-	rm -f codec/image_to_j2k
-	rm -f codec/j2k_to_image
-	
 	$(MAKE) clean
 	
-	dh_clean 
+	dh_clean indexer_JPIP/index_create codec/image_to_j2k codec/j2k_to_image libopenjpeg.a.nopic libopenjpeg.so build-stamp
 	rm -f $(manpages)
 
 install: build manpages

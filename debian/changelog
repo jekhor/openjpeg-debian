@@ -1,3 +1,28 @@
+openjpeg (1.3-2) unstable; urgency=low
+
+  [ Cyril Brulebois ]
+  * Remove leftover codec/{image_to_j2k, j2k_to_image} in the clean
+    target (fix double-build failure)
+  * Indent list in the long description (per lintian)
+  * Replace XS-Vcs-{Svn, Browser} with Vcs-{Git, Browser}
+
+  [ Robin Cornelius ]
+  * Tidy up control file package descriptions and use soname in -dbg
+    package
+  * Do not keep upstream source in our git tree. We should use a get-
+    orig-source
+  * Apply Cyril Brulebois' suggestion for watchfile regex.
+  * Update debian/rules. Note get-orig-source needs further work.
+  * Change maintainer address to be the group address.
+  * Fix build warning, add final new line to debain/watch
+  * Fix lintian warnings due to different email address in changelog and
+    Uploaders:
+  * In debian/rules clean target, use dh_clean to remove all files,
+    don't use rm
+  * Update debian/copyright as I have made changes in 2008.
+
+ -- Robin Cornelius <robin.cornelius@gmail.com>  Tue, 29 Jan 2008 10:03:54 +0000
+
 openjpeg (1.3-1) unstable; urgency=low
 
   * New upstream release

@@ -14,15 +14,18 @@ Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
 Description: Development files for libopenjpeg2, a JPEG 2000 image library
- This package contains the development files for applications wishing to link 
- against libopenjpeg2.
+ This package contains the static library and headers files.
 
 Package: libopenjpeg2
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: JPEG 2000 image compression codec library
- A codec library for handling the JPEG 2000 image compression format.
+ A codec library for handling the JPEG 2000 image compression format. JPEG 2000
+ is a wavelet based image compression standard and permits progressive 
+ transmission by pixel and resolution accuracy for progressive downloads of an 
+ encoded image. It supports lossless and lossy compression, it supports higher 
+ compression than JPEG 1991 and has resilience to errors in the image.
 
 Package: libopenjpeg2-dbg
 Section: libdevel
@@ -30,8 +33,8 @@ Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
 Description: Debug symbols for libopenjpeg2, a JPEG 2000 image library 
  This package contains the debug symbols to match the runtime component
- of the OpenJPEG library, allowing debugging of a program using the OpenJPEG 
- library to usefully access details within the library itself.
+ of the libopenjpeg2 library, allowing debugging of a program using libopenjpeg2 
+ to access debugging details within the library itself.
 
 Package: openjpeg-tools
 Section: graphics
@@ -42,5 +45,4 @@ Description: JPEG 2000 image compression codec tools distributed with the
   - j2k_to_image, decodes j2k, jp2 and jpt files to pgm, ppm, pnm, pgx and bmp
   - image_to_j2k, encodes pnm, pgm, pgx, bmp and ppm files to j2k and jp2
   - index_create, create jp2 with JPIP index file from a j2k file
-
 

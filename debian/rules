@@ -66,8 +66,6 @@ binary-arch: build install
 	dh_builddeb
 
 binary: binary-indep binary-arch
-.PHONY: build clean realclean binary-indep binary-arch binary install manpages patch unpatch
-.SUFFIXES: .1 .help
 
 %.1: %.help
 	txt2man -v "OpenJPEG Reference Manual" -t $(subst debian/,,$*) -s 1 -r "$(subst debian/,,$*) 1.1.1" $< > $@
@@ -97,3 +95,6 @@ get-orig-source:
 	mv tmp/openjpeg*.tar.gz ..
 	mv tmp/OpenJPEG*/* .
 	rm tmp/ -r
+
+.PHONY: build clean realclean binary-indep binary-arch binary install manpages patch unpatch
+.SUFFIXES: .1 .help

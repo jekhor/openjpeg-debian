@@ -1,5 +1,4 @@
 #!/usr/bin/make -f
-# -*- makefile -*-
 
 include /usr/share/dpatch/dpatch.make
 
@@ -75,17 +74,6 @@ binary: binary-indep binary-arch
 # Generated manpages
 manpages := debian/image_to_j2k.1 debian/j2k_to_image.1 debian/index_create.1
 manpages: $(manpages)
-
-# This seems a tad hackish, but it works and at least uses uscan to get the
-# latest version
-get-orig-source:
-	rm -f -r tmp
-	mkdir tmp
-	uscan --force-download --destdir tmp/ --rename
-	cd tmp && tar -xvzf openjpeg*.tar.gz
-	mv tmp/openjpeg*.tar.gz ..
-	mv tmp/OpenJPEG*/* .
-	rm tmp/ -r
 
 .PHONY: build clean realclean binary-indep binary-arch binary install manpages patch unpatch
 .SUFFIXES: .1 .help

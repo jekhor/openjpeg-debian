@@ -36,7 +36,7 @@ realclean:
 
 	dh_clean indexer_JPIP/index_create codec/image_to_j2k codec/j2k_to_image libopenjpeg.a.nopic libopenjpeg.so build-stamp $(manpages)
 
-install: build manpages
+install: build build-manpages
 	dh_testdir
 	dh_testroot
 	dh_clean -k
@@ -77,7 +77,7 @@ binary: binary-indep binary-arch
 
 # Generated manpages
 manpages := debian/image_to_j2k.1 debian/j2k_to_image.1 debian/index_create.1
-manpages: $(manpages)
+build-manpages: $(manpages)
 
-.PHONY: build clean realclean binary-indep binary-arch binary install manpages patch unpatch
+.PHONY: build build-manpages clean realclean binary-indep binary-arch binary install
 .SUFFIXES: .1 .help

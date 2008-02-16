@@ -37,7 +37,7 @@ install: build manpages
 	dh_clean -k
 	dh_installdirs
 
-	make dist
+	$(MAKE) dist
 	# The libraries and header file are in dist/
 	# So we'll dump the binaries there too
 	cp codec/j2k_to_image codec/image_to_j2k dist/

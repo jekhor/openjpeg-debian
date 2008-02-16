@@ -25,6 +25,10 @@ realclean:
 	dh_testdir
 	dh_testroot
 
+	# Remove execute permission since upstreams ships all files with +x
+	chmod -R a-X .
+	chmod a+x debian/rules
+
 	[ ! -f  codec/*.o ] || $(MAKE) -C codec clean
 	[ ! -f  indexer_JPIP/*.o ] || $(MAKE) -C indexer_JPIP clean
 

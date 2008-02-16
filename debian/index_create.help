@@ -22,7 +22,7 @@ indexversion  Index version to use:
               1. [faix] 8-byte and no AUX fields
               2. [faix] 4-byte and AUX fields
               3. [faix] 8-byte and AUX fields
- 
+
 AUTHOR
 
 Written by Paul Hampson <Paul.Hampson@Pobox.com> based on the output of index_create as part of the Debian packaging of OpenJPEG

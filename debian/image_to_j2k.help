@@ -22,16 +22,16 @@ OPTIONS
 
 -o {destination}  J2K or JP2 file to output to
 
--h                Display help information 
+-h                Display help information
 
 -cinema2k {fps}   Digital Cinema 2K profile compliant codestream for 2K resolution. 24 or 48 fps.
 
 -cinema4k [fps]   Digital Cinema 4K profile compliant codestream for 4K resolution. fps default is 24
- 
+
 -r {ratios}       compression factor for successive layers, comma seperated
- 
+
 -q {psnr}         psnr for successive layers, comma seperated
- 
+
 -n {rescount}     number of resolutions
 
 -b {blocksize}    width and height of code block, comma-seperated
@@ -46,9 +46,9 @@ OPTIONS
 
 -POC {orders}     progression order change
 
--SOP              write SOP marker before each packet 
+-SOP              write SOP marker before each packet
 
--EPH              write EPH marker after each header packet 
+-EPH              write EPH marker after each header packet
 
 -M {modeflags}    Sum of the values of the modes, as follows:
 					1. BYPASS (LAZY)
@@ -69,10 +69,10 @@ OPTIONS
 -I                use the irreversible DWT 9-7
 
 EXAMPLE
-	
+
 ratios: 20,10,1  Quality 1: compress 20x; Quality 2: compress 10x; Quality 3: lossless compression
 
-psnr: 30,40,50  
+psnr: 30,40,50
 
 quantize: c=0,U=25
 

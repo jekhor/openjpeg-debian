@@ -14,7 +14,7 @@ build-stamp: patch
 
 	# build all library targets
 	$(MAKE) OpenJPEG
-	$(MAKE) -C codec 
+	$(MAKE) -C codec
 	$(MAKE) -C indexer_JPIP
 
 	touch $@
@@ -26,15 +26,15 @@ realclean:
 
 	[ ! -f  codec/*.o ] || $(MAKE) -C codec clean
 	[ ! -f  indexer_JPIP/*.o ] || $(MAKE) -C indexer_JPIP clean
-	
+
 	$(MAKE) clean
-	
+
 	dh_clean indexer_JPIP/index_create codec/image_to_j2k codec/j2k_to_image libopenjpeg.a.nopic libopenjpeg.so build-stamp $(manpages)
 
 install: build manpages
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_clean -k
 	dh_installdirs
 
 	make dist
@@ -94,7 +94,6 @@ get-orig-source:
 	mkdir tmp
 	uscan --force-download --destdir tmp/ --rename
 	cd tmp && tar -xvzf openjpeg*.tar.gz
-	mv tmp/openjpeg*.tar.gz ..	
+	mv tmp/openjpeg*.tar.gz ..
 	mv tmp/OpenJPEG*/* .
 	rm tmp/ -r
-

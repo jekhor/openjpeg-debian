@@ -22,12 +22,12 @@ OPTIONS
 
 -o {destination}  PGM, PPM, PNM, PGX or BMP file to output to
 
--h                Display help information 
- 
+-h                Display help information
+
 -r {reduction}    Number of highest resolution levels to be discarded. Output resolution is effectively divided by 2^reduction
 
 -l {layers}       Maximum count of quality layers to decode
- 
+
 AUTHOR
 
 Written by Paul Hampson <Paul.Hampson@Pobox.com> based on the output of j2k_to_image -h as part of the Debian packaging of OpenJPEG

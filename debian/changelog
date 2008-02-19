@@ -1,4 +1,4 @@
-openjpeg (1.3+dfsg1) UNRELEASED; urgency=low
+openjpeg (1.3+dfsg1) unstable; urgency=low
 
   [ Cyril Brulebois ]
   * Remove leftover codec/{image_to_j2k, j2k_to_image} in the clean

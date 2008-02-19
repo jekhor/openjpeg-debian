@@ -155,7 +155,7 @@ Licence: BSD-4
 
 
 The files below have been removed from the Debian source package as the licence
-is not DFSG compatable. They were in the original upstream tarball.
+is not DFSG compatible.
 
 Files: j2kviewer/src/Exec.java
 Copyright: © 1997 Marty hall <hall@apl.jhu.edu>

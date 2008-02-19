@@ -1,12 +1,11 @@
 
-DFSG repack
------------
+DFSG repackaging
 
-The file j2kviewer/src/Exec.java does not have a DFSG compatable licence and
+The file j2kviewer/src/Exec.java does not have a DFSG compatible licence and
 therefore has been removed from the Debian source package. As the other files
-in j2kviewer/src/ depend on Exec.java they too have been removed. If you 
+in j2kviewer/src/ depend on Exec.java, they too have been removed. If you
 require a copy of these files then please download the upstream tarball which is
-avaiable from http://www.openjpeg.org/
+available from http://www.openjpeg.org/
 
 These files have no effect on the openjpeg library or the openjpeg tools as they
 are examples of how to use libopenjpeg2 from java.

@@ -2,6 +2,9 @@
 
 include /usr/share/dpatch/dpatch.make
 
+# used as trailer in the generated manpages
+UVERSION = $(shell dpkg-parsechangelog | perl -ne 'print "$$1\n" if (/^Version: (.*?)(?:\.dfsg)?\-.*?$$/)')
+
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 	EXTRA_CFLAGS += -O0
 else
@@ -17,6 +20,13 @@ build-stamp: patch
 	$(MAKE) OpenJPEG
 	$(MAKE) -C codec
 	$(MAKE) -C indexer_JPIP
+
+	# build manpages
+	for i in debian/*.pod; do \
+		pod2man --center 'OPENJPEG TOOLS' \
+			--release $(UVERSION) \
+			$$i $${i%%.pod}.1 ; \
+	done
 
 	touch $@
 
@@ -34,7 +44,13 @@ realclean:
 
 	$(MAKE) clean
 
-	dh_clean indexer_JPIP/index_create codec/image_to_j2k codec/j2k_to_image libopenjpeg.a.nopic libopenjpeg.so build-stamp $(manpages)
+	# delete the manpages which were built from perlpod (not using *.1,
+	# in case a later file is added and not checked in)
+	for i in debian/*.pod; do \
+		rm -f $${i%%.pod}.1 \
+	done
+
+	dh_clean indexer_JPIP/index_create codec/image_to_j2k codec/j2k_to_image libopenjpeg.a.nopic libopenjpeg.so build-stamp
 
 install: build
 	dh_testdir

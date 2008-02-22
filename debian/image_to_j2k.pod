@@ -1,0 +1,91 @@
+NAME
+
+image_to_j2k - convert a PNM, PGM, PPM, PGX or BMP into a J2K or JP2 file
+
+SYNOPSIS
+
+image_to_j2k -i source -o destination [-cinema2k] [-cinema4k] [-r ratios | -q psnr] [-n rescount] [-b blocksize] [-c precintsize] [-t tilesize] [-p progression] [-s subsampling] [-POC orders] [-SOP] [-EPH] [-M modeflags] [-x indexfile] [-ROI:quantize] [-d imageoffset] [-T tileoffset] [-I]
+image_to_j2k -ImgDir sourcedir -OutFor extension [-cinema2k] [-cinema4k] [-r ratios | -q psnr] [-n rescount] [-b blocksize] [-c precintsize] [-t tilesize] [-p progression] [-s subsampling] [-POC orders] [-SOP] [-EPH] [-M modeflags] [-x indexfile] [-ROI:quantize] [-d imageoffset] [-T tileoffset] [-I]
+image_to_j2k -h
+
+DESCRIPTION
+
+	image_to_j2k converts an image into a JPEG 2000-encoded image
+
+OPTIONS
+
+-ImgDir {sourcedir}  Directory of PGM, PPM, PNM, PGX or BMP files to convert
+
+-OutFor {extension}  J2K or JP2 output file format
+
+-i {source}       PNM, PGM or PPM file to convert
+
+-o {destination}  J2K or JP2 file to output to
+
+-h                Display help information
+
+-cinema2k {fps}   Digital Cinema 2K profile compliant codestream for 2K resolution. 24 or 48 fps.
+
+-cinema4k [fps]   Digital Cinema 4K profile compliant codestream for 4K resolution. fps default is 24
+
+-r {ratios}       compression factor for successive layers, comma seperated
+
+-q {psnr}         psnr for successive layers, comma seperated
+
+-n {rescount}     number of resolutions
+
+-b {blocksize}    width and height of code block, comma-seperated
+
+-c {precintsize}  width and height of precinct, comma-seperated
+
+-t {tilesize}     width and height of tile, comma-seperated
+
+-p {progression}  progression order, one of LRCP, RLCP, RPCL, PCRL, CPRL
+
+-s {subsampling}  subsampling factor in X and Y, comma-seperated. Values larger than 2 can produce errors
+
+-POC {orders}     progression order change
+
+-SOP              write SOP marker before each packet
+
+-EPH              write EPH marker after each header packet
+
+-M {modeflags}    Sum of the values of the modes, as follows:
+					1. BYPASS (LAZY)
+					2. RESET
+					4. RESTART (TERMALL)
+					8. VSC
+					16. ERTERM (SEGTERM)
+					32. SEGMARK (SEGSYM)
+
+-x {indexfile}    create an index file
+
+-ROI:{quantize}   quantization indices upshifted for component c between 0 and 2 inclusive with an upshift of U between 0 and 37 inclusive
+
+-d {imageoffset}  X and Y offset of the origin of the image, comma-seperated
+
+-T {tileoffset}   X and Y offset of the origin of the tiles, comma-seperated
+
+-I                use the irreversible DWT 9-7
+
+EXAMPLE
+
+ratios: 20,10,1  Quality 1: compress 20x; Quality 2: compress 10x; Quality 3: lossless compression
+
+psnr: 30,40,50
+
+quantize: c=0,U=25
+
+orders: T1=0,0,1,5,3,CPRL  Title 1: Resolution 0 start, component 0 start, layer 1 end, resolution 5 end, component 3 end, CPRL progression
+
+AUTHOR
+
+Written by Paul Hampson <Paul.Hampson@Pobox.com> based on the output of image_to_j2k -h as part of the Debian packaging of OpenJPEG
+
+COPYRIGHT
+
+Copyright 2007 Paul Hampson
+
+SEE ALSO
+
+j2k_to_image(1), http://www.openjpeg.org/index.php?menu=doc#encoder

@@ -47,7 +47,7 @@ realclean:
 	# delete the manpages which were built from perlpod (not using *.1,
 	# in case a later file is added and not checked in)
 	for i in debian/*.pod; do \
-		rm -f $${i%%.pod}.1 \
+		rm -f $${i%%.pod}.1; \
 	done
 
 	dh_clean indexer_JPIP/index_create codec/image_to_j2k codec/j2k_to_image libopenjpeg.a.nopic libopenjpeg.so build-stamp

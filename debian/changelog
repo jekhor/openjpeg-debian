@@ -36,9 +36,13 @@ openjpeg (1.3+dfsg-1) unstable; urgency=low
   * In debian/rules clean target, use dh_clean to remove all files,
     don't use rm
   * Update debian/copyright as I have made changes in 2008.
-  * Use dh_clean to clean up the temp manpages.
-  * txt2man is buggy and generates incorrectly formatted man pages
-    (#416391). Remove it from Build-Depends.
+  * Switch from txt2man to perlpod:
+     - txt2man is buggy and generates incorrectly formatted man pages
+       (#416391).
+     - Remove it from Build-Depends.
+     - Use perlpod manpages (debian/*.pod).
+     - Generate manpages during the build through pod2man.
+     - Delete them through dh_clean.
 
  -- Robin Cornelius <robin.cornelius@gmail.com>  Tue, 19 Feb 2008 12:28:20 +0000
 

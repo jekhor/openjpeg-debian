@@ -1,0 +1,7 @@
+TODO for openjpeg:
+------------------
+
+  * Improve the handling of the .so symlinks, which are at the moment manually
+    created through debian/*.links, with hardcoded filenames.
+
+ -- Cyril Brulebois <cyril.brulebois@enst-bretagne.fr>  Sun, 02 Mar 2008 01:42:59 +0100

@@ -1,8 +1,10 @@
+openjpeg (1.3+dfsg-1) unstable; urgency=low
 
-DFSG repackaging
+  * The file j2kviewer/src/Exec.java does not have a DFSG compatible licence
+    and therefore has been removed from the Debian source package. As the
+    other files in j2kviewer/src/ depend on Exec.java, they too have been
+    removed. In addition upstream no longer supports these files and they have
+    been removed from upstream SVN and will not appear in any future upstream
+    releases.
 
-The file j2kviewer/src/Exec.java does not have a DFSG compatible licence and
-therefore has been removed from the Debian source package. As the other files
-in j2kviewer/src/ depend on Exec.java, they too have been removed. In addition
-upstream no longer supports these files and they have been removed from upstream
-SVN and will not appear in any future upstream releases.
+ -- Robin Cornelius <robin.cornelius@gmail.com>  Tue, 19 Feb 2008 12:28:20 +0000

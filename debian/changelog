@@ -8,7 +8,7 @@ openjpeg (1.3+dfsg-1) unstable; urgency=low
   * Nuke trailing whitespaces.
   * Rephrase descriptions.
   * Remove remaining trailing whitespaces.
-  * Use “ dist” instead of “make dist”.
+  * Use “$(MAKE) dist” instead of “make dist”.
   * Move .PHONY and .SUFFIXES to the bottom.
   * Use an include of dpatch.make instead of defining the rules
     manually.

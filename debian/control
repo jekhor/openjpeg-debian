@@ -14,19 +14,19 @@ Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
 Description: development files for libopenjpeg2, a JPEG 2000 image library
- This package contains the static library and headers files.
-
-Package: libopenjpeg2
-Section: libs
-Architecture: any
-Depends: ${shlibs:Depends}
-Description: JPEG 2000 image compression/decompression library
  Libopenjpeg2 is a library for handling the JPEG 2000 image
  compression format. JPEG 2000 is a wavelet-based image compression
  standard and permits progressive transmission by pixel and resolution
  accuracy for progressive downloads of an encoded image. It supports
  lossless and lossy compression, supports higher compression than
  JPEG 1991, and has resilience to errors in the image.
+
+Package: libopenjpeg2
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: JPEG 2000 image compression/decompression library
+ A library for handling the JPEG 2000 image compression format.
 
 Package: libopenjpeg2-dbg
 Section: libdevel

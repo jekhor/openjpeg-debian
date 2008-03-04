@@ -7,4 +7,16 @@ openjpeg (1.3+dfsg-1) unstable; urgency=low
     been removed from upstream SVN and will not appear in any future upstream
     releases.
 
- -- Robin Cornelius <robin.cornelius@gmail.com>  Tue, 19 Feb 2008 12:28:20 +0000
+  * The files libs/* have been removed from the Debian source package as they
+    contain a binary library for win32 systems and libtiff headers which may not
+    reflect the installed libtiff and cause cause ABI breakage for an end user
+    The build is also patched to use the system installed libtiff headers under
+    /usr/include
+
+  * The files /JavaOpenJPEG/java\ sources/org/openJpeg/* have been removed from
+    this release as they have a copyright that indicates a non free licence.
+    Upstream confirms that this is a mistake and it will be corrected for the
+    next release. As these files do not effect the building of libopenjpeg or
+    the codec tools they have been omitted.
+
+ -- Robin Cornelius <robin.cornelius@gmail.com>  Tue, 04 Mar 2008 09:19:20 +0000

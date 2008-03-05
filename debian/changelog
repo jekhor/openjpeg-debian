@@ -23,6 +23,8 @@ openjpeg (1.3+dfsg-1) unstable; urgency=low
     target for further uploads.
 
   [ Robin Cornelius ]
+  * Remove some additional non-dfsg files and also a windows static library
+    from tarball.
   * Remove non-dfsg files from package and edit copyright and README.Debian to
     reflect changes.
   * Tidy up control file package descriptions and use soname in -dbg

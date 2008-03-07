@@ -14,37 +14,35 @@ Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
 Description: development files for libopenjpeg2, a JPEG 2000 image library
- Libopenjpeg2 is a library for handling the JPEG 2000 image
- compression format. JPEG 2000 is a wavelet-based image compression
- standard and permits progressive transmission by pixel and resolution
- accuracy for progressive downloads of an encoded image. It supports
- lossless and lossy compression, supports higher compression than
- JPEG 1991, and has resilience to errors in the image.
+ Libopenjpeg2 is a library for handling the JPEG 2000 image compression format.
+ JPEG 2000 is a wavelet-based image compression standard and permits progressive
+ transmission by pixel and resolution accuracy for progressive downloads of an
+ encoded image. It supports lossless and lossy compression, supports higher
+ compression than JPEG 1991, and has resilience to errors in the image.
 
 Package: libopenjpeg2
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: JPEG 2000 image compression/decompression library
- A library for handling the JPEG 2000 image compression format.
+ Libopenjpeg2 is a library for handling the JPEG 2000 image compression format.
 
 Package: libopenjpeg2-dbg
 Section: libdevel
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version})
 Description: debug symbols for libopenjpeg2, a JPEG 2000 image library
- This package contains the debug symbols to match the runtime
- component of the libopenjpeg2 library, allowing debugging of a
- program using libopenjpeg2 to access debugging details within the
- library itself.
+ This package contains the debug symbols to match the runtime component of the
+ libopenjpeg2 library, allowing debugging of a program using libopenjpeg2 to
+ access debugging details within the library itself.
 
 Package: openjpeg-tools
 Section: graphics
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: command-line tools using the JPEG 2000 library
- This package provides with command-line tools allowing for
- conversions between several formats:
+ This package provides with command-line tools allowing for conversions between
+ several formats:
   - j2k_to_image: decodes j2k, jp2, and jpt files to pgm, ppm, pnm,
                   pgx, and bmp.
   - image_to_j2k: encodes pnm, pgm, pgx, bmp, and ppm files to j2k,

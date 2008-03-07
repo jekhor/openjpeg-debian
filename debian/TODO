@@ -10,7 +10,7 @@ TODO for openjpeg:
       withstand to transmission errors.
     + jp3d/ - Volumetric Imaging.
     + JavaOpenJPEG/ - Java Encoder/Decoder interface for libopenjpeg.
-    Note, none of these tools are build as default in the standard OpenJPEG2000
+    Note, none of these tools are built as default in the standard OpenJPEG2000
     distribution and are not built from the top level makefile. Some of the
     tools do not build cleanly from the source distribution and require further
     work to be able to be included in the openjpeg-tools package.

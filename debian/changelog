@@ -33,7 +33,7 @@ openjpeg (1.3+dfsg-1) unstable; urgency=low
   * Apply Cyril Brulebois' suggestion for watchfile regex.
   * Update debian/rules. Note get-orig-source needs further work.
   * Change maintainer address to be the group address.
-  * Fix build warning, add final new line to debain/watch
+  * Fix build warning, add final new line to debian/watch.
   * Fix lintian warnings due to different email address in changelog and
     Uploaders:
   * In debian/rules clean target, use dh_clean to remove all files,

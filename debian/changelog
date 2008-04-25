@@ -1,3 +1,11 @@
+openjpeg (1.3+dfsg-2) unstable; urgency=low
+
+  * Fix FTBFS when “sudo” is used (which is the case on alpha, mips, and
+    mipsel buildds) by using chmod in a better way, recursively removing
+    -x and adding +X, so that sufficient permissions remain.
+
+ -- Cyril Brulebois <kibi@debian.org>  Sat, 26 Apr 2008 00:15:51 +0200
+
 openjpeg (1.3+dfsg-1) unstable; urgency=low
 
   [ Cyril Brulebois ]

@@ -36,7 +36,8 @@ realclean:
 	dh_testroot
 
 	# Remove execute permission since upstreams ships all files with +x
-	chmod -R a-X .
+	chmod -R a-x .
+	chmod -R a+X .
 	chmod a+x debian/rules
 
 	[ ! -f  codec/*.o ] || $(MAKE) -C codec clean

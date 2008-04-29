@@ -5,6 +5,8 @@ openjpeg (1.3+dfsg-2) unstable; urgency=low
     -x and adding +X, so that sufficient permissions remain.
   * debian/control:
      - Add myself to Uploaders.
+  * debian/copyright:
+     - Update my mail address.
 
  -- Cyril Brulebois <kibi@debian.org>  Sat, 26 Apr 2008 00:15:51 +0200
 

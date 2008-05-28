@@ -1,0 +1,24 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## Fix FTBFS on alpha platforms.dpatch by  <robin@debian.example.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+
+diff --git a/codec/dirent.h b/codec/dirent.h
+--- a/codec/dirent.h
++++ b/codec/dirent.h
+@@ -119,7 +119,9 @@
+ # elif defined(__hpux)                         /* HP-UX */
+ #   define HAVE_DIRENT_H
+ # elif defined(__alpha) || defined(__alpha__)  /* Alpha OSF1 */
+-#   error "not implemented"
++#   if !defined(__linux__)
++#   	error "not implemented"
++#   endif
+ # elif defined(__sgi)                          /* Silicon Graphics */
+ #   define HAVE_DIRENT_H
+ # elif defined(sun) || defined(_sun)           /* Sun Solaris */
+
+

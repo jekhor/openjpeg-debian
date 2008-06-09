@@ -64,6 +64,7 @@ install: build
 	# So we'll dump the binaries there too
 	cp codec/j2k_to_image codec/image_to_j2k dist/
 	cp indexer_JPIP/index_create dist/
+	cp debian/jp2-thumbnailer dist/
 
 binary-indep: build install
 # We have nothing to do by default.
@@ -76,6 +77,7 @@ binary-arch: build install
 	dh_installexamples
 	dh_install --sourcedir=dist/
 	dh_installman
+	dh_gconf	
 	dh_link
 	dh_strip --dbg-package=libopenjpeg2-dbg
 	dh_compress

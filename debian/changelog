@@ -1,3 +1,11 @@
+openjpeg (1.3+dfsg-4) unstable; urgency=low
+
+  * Fix FTBFS on alpha for real (Closes: #483048).
+     - Update 32_fix_FTBFS_on_alpha.dpatch with the patch provided by
+       Arthur Loiret (thanks).
+
+ -- Cyril Brulebois <kibi@debian.org>  Mon, 09 Mar 2009 16:59:02 +0100
+
 openjpeg (1.3+dfsg-3) unstable; urgency=low
 
   * Fix FTBFS on alpha. Modify codec/dirent.h to not generate error if __linux__

@@ -20,6 +20,7 @@ build-stamp: patch
 	$(MAKE) OpenJPEG
 	$(MAKE) -C codec
 	$(MAKE) -C indexer_JPIP
+	$(MAKE) -C mj2
 
 	# build manpages
 	for i in debian/*.pod; do \
@@ -65,6 +66,10 @@ install: build
 	cp codec/j2k_to_image codec/image_to_j2k dist/
 	cp indexer_JPIP/index_create dist/
 	cp debian/jp2-thumbnailer dist/
+	cp mj2/extract_j2k_from_mj2 dist/
+	cp mj2/frames_to_mj2 dist/
+	cp mj2/mj2_to_frames dist/
+	cp mj2/wrap_j2k_in_mj2 dist/
 
 binary-indep: build install
 # We have nothing to do by default.

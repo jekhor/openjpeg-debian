@@ -45,6 +45,7 @@ realclean:
 	[ ! -f  indexer_JPIP/*.o ] || $(MAKE) -C indexer_JPIP clean
 
 	$(MAKE) clean
+	$(MAKE) clean -C mj2
 
 	# delete the manpages which were built from perlpod (not using *.1,
 	# in case a later file is added and not checked in)

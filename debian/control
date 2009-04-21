@@ -42,9 +42,15 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: command-line tools using the JPEG 2000 library
  This package provides with command-line tools allowing for conversions between
- several formats:
+ several formats and also provides tools for encoding and decoding
+ motion-jpeg2000 video formats:
   - j2k_to_image: decodes j2k, jp2, and jpt files to pgm, ppm, pnm,
                   pgx, and bmp.
   - image_to_j2k: encodes pnm, pgm, pgx, bmp, and ppm files to j2k,
                   and jp2.
   - index_create: create jp2 with JPIP index file from a j2k file.
+  - frames_to_mj2: convert YUV video streams to mj2 format.
+  - mj2_to_frames: convert mj2 video streams to YUV format.
+  - wrap_j2k_in_mj2: wrap j2k codestreams into mj2 format.
+  - extract-j2k-from_mj2: extract j2k codestreams from the mj2 format.
+

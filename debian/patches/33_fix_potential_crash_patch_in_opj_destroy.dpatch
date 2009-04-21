@@ -1,0 +1,19 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## Prevent crash on opj_destroy().dpatch by  <robin.cornelius@gmail.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Fix a crash path in openjpeg where image->comps is wild and gets used 
+## DP: in opj_destroy()
+
+@DPATCH@
+
+--- ../libopenjpeg/image.c	2008-03-10 08:50:35.000000000 +0000
++++ ./libopenjpeg/image.c	2009-04-21 17:25:07.000000000 +0100
+@@ -28,6 +28,7 @@
+ 
+ opj_image_t* opj_image_create0(void) {
+ 	opj_image_t *image = (opj_image_t*)opj_malloc(sizeof(opj_image_t));
++	image->comps = NULL;
+ 	return image;
+ }
+ 

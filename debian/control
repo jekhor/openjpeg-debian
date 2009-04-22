@@ -28,7 +28,7 @@ Description: JPEG 2000 image compression/decompression library
  Libopenjpeg2 is a library for handling the JPEG 2000 image compression format.
 
 Package: libopenjpeg2-dbg
-Section: libdevel
+Section: debug
 Architecture: any
 Depends: libopenjpeg2 (= ${binary:Version}) ${misc:Depends}
 Description: debug symbols for libopenjpeg2, a JPEG 2000 image library

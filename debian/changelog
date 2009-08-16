@@ -9,15 +9,15 @@ openjpeg (1.3+dfsg-5) UNRELEASED; urgency=low
   * Add to the packages to fix a lintian warning because we are using
     deb-helper and misc:Depends is a requirment
   * Fix a crash path in openjpeg that was identified when placing the
-    lib under load with Secondlife
+    lib under load
   * Place -dbg package in section debug
   * Implement a README.source
   * Bump standards version as we are bringing the package up to latest
     spec
   * Fix alpha channel encode by preventing an overrun in the static MCT
-    tables when processing more than 3 color components.
+    tables when processing more than 3 color components. (Closes #541807)
 
- -- Robin Cornelius <robin.cornelius@gmail.com>  Wed, 22 Apr 2009 14:29:32 +0100
+ -- Robin Cornelius <robin.cornelius@gmail.com>  Wed, 16 Aug 2009 13:44:32 +0100
 
 openjpeg (1.3+dfsg-4) unstable; urgency=high
 

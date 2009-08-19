@@ -30,7 +30,7 @@ Description: JPEG 2000 image compression/decompression library
 Package: libopenjpeg2-dbg
 Section: debug
 Architecture: any
-Depends: libopenjpeg2 (= ${binary:Version}) ${misc:Depends}
+Depends: libopenjpeg2 (= ${binary:Version}), ${misc:Depends}
 Description: debug symbols for libopenjpeg2, a JPEG 2000 image library
  This package contains the debug symbols to match the runtime component of the
  libopenjpeg2 library, allowing debugging of a program using libopenjpeg2 to

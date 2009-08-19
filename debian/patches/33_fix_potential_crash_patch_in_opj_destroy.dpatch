@@ -1,5 +1,5 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## Prevent crash on opj_destroy().dpatch by  <robin.cornelius@gmail.com>
+## Prevent crash on opj_destroy().dpatch by Robin Cornelius <robin.cornelius@gmail.com>
 ##
 ## All lines beginning with `## DP:' are a description of the patch.
 ## DP: Fix a crash path in openjpeg where image->comps is wild and gets used 

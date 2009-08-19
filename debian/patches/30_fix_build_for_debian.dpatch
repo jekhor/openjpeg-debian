@@ -1,5 +1,5 @@
 #! /bin/sh /usr/share/dpatch/dpatch-run
-## 30_fix_build_for_debian.dpatch by <robin.cornelius@gmail.com>
+## 30_fix_build_for_debian.dpatch by Robin Cornelius <robin.cornelius@gmail.com>
 ##
 ## All lines beginning with `## DP:' are a description of the patch.
 ## DP: Dont apply the -s strip flag to the shared lib debian will do it for us 

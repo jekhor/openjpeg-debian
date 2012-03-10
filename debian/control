@@ -3,7 +3,7 @@ Priority: extra
 Maintainer: Debian PhotoTools Maintainers <pkg-phototools-devel@lists.alioth.debian.org>
 Uploaders: Robin Cornelius <robin.cornelius@gmail.com>, Cyril Brulebois <kibi@debian.org>,Yauhen Kharuzhy <jekhor@gmail.com>
 Homepage: http://www.openjpeg.org
-Build-Depends: debhelper (>= 8.9), libtiff5-dev, liblcms2-dev, libpng-dev, libcurl4-gnutls-dev, libfcgi-dev
+Build-Depends: debhelper (>= 8.9~), libtiff5-dev, liblcms2-dev, libpng-dev, libcurl4-gnutls-dev, libfcgi-dev
 Standards-Version: 3.9.3
 Section: libs
 Vcs-Browser: http://git.debian.org/?p=pkg-phototools/openjpeg.git

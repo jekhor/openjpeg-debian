@@ -1,1 +1,2 @@
 0001-JPWL-Link-binaries-with-math-library.patch
+0002-Fix-warning-about-strcpy-memory-corruption.patch

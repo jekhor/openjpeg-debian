@@ -1,0 +1,27 @@
+From: Yauhen Kharuzhy <jekhor@gmail.com>
+Date: Sat, 10 Mar 2012 17:02:53 +0300
+Subject: Fix warning about strcpy() memory corruption
+
+TBox field of struct placeholder_param is array of char with four
+elements. So, using of strcpy(phld->TBox, "phld") is invalid in generic
+case, because it corrupts following byte in memory. Replace it by
+memcpy().
+
+Signed-off-by: Yauhen Kharuzhy <jekhor@gmail.com>
+---
+ applications/jpip/libopenjpip/msgqueue_manager.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/applications/jpip/libopenjpip/msgqueue_manager.c b/applications/jpip/libopenjpip/msgqueue_manager.c
+index 5123f79..2818361 100644
+--- a/applications/jpip/libopenjpip/msgqueue_manager.c
++++ b/applications/jpip/libopenjpip/msgqueue_manager.c
+@@ -677,7 +677,7 @@ placeholder_param_t * parse_phld( Byte_t *datastream, Byte8_t metalength)
+   phld = (placeholder_param_t *)malloc( sizeof(placeholder_param_t));
+   
+   phld->LBox = big4( datastream);
+-  strcpy( phld->TBox, "phld");
++  memcpy( phld->TBox, "phld", 4);
+   phld->Flags = big4( datastream+8);
+   phld->OrigID = big8( datastream+12);
+   phld->OrigBHlen = metalength - 20;

@@ -1,0 +1,7 @@
+debian/extract_j2k_from_mj2.1
+debian/frames_to_mj2.1
+debian/image_to_j2k.1
+debian/index_create.1
+debian/j2k_to_image.1
+debian/mj2_to_frames.1
+debian/wrap_j2k_in_mj2.1

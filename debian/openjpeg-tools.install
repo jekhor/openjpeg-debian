@@ -1,1 +1,3 @@
 usr/bin/*
+debian/jp2-thumbnailer usr/bin
+debian/jp2.thumbnailer usr/share/thumbnailers

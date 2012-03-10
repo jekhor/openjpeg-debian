@@ -1,0 +1,5 @@
+[Thumbnailer Entry]
+TryExec=jp2-thumbnailer
+Exec=jp2-thumbnailer -i %i -o %o
+MimeType=image/x-jp2;
+

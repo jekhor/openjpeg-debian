@@ -23,6 +23,7 @@ Description: development files for libopenjpeg2, a JPEG 2000 image library
 Package: libopenjpeg2
 Section: libs
 Architecture: any
+Pre-Depends: multiarch-support
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: JPEG 2000 image compression/decompression library
  Libopenjpeg2 is a library for handling the JPEG 2000 image compression format.

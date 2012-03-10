@@ -2,6 +2,7 @@ Source: openjpeg
 Priority: extra
 Maintainer: Debian PhotoTools Maintainers <pkg-phototools-devel@lists.alioth.debian.org>
 Uploaders: Robin Cornelius <robin.cornelius@gmail.com>, Cyril Brulebois <kibi@debian.org>,Yauhen Kharuzhy <jekhor@gmail.com>
+DM-Upload-Allowed: yes
 Homepage: http://www.openjpeg.org
 Build-Depends: debhelper (>= 8.9~), dh-autoreconf, libtiff5-dev, liblcms2-dev,
  libpng-dev, libcurl4-gnutls-dev, libfcgi-dev

@@ -1,13 +1,13 @@
-openjpeg (1.5.0-1) UNRELEASED; urgency=low
+openjpeg (1.5.0-1) unstable; urgency=low
 
-  * New upstream release
+  * New upstream release (Closes: #659226, #514607, #541807)
   * Switch to dpkg-source 3.0 (quilt) format
   * Add myself to uploaders
   * Remove obsoleted patches
   * Remove obsoleted notices about removed files for DFSG-compliance
-  * Switch to dh9
+  * Switch to dh9 (Closes: #663045)
 
- -- Yauhen Kharuzhy <jekhor@gmail.com>  Sat, 10 Mar 2012 14:53:26 +0300
+ -- Yauhen Kharuzhy <jekhor@gmail.com>  Sat, 10 Mar 2012 18:00:45 +0300
 
 openjpeg (1.3+dfsg-5) unstable; urgency=low
 

@@ -1,12 +1,13 @@
 openjpeg (1.5.0-1) UNRELEASED; urgency=low
 
+  * New upstream release
   * Switch to dpkg-source 3.0 (quilt) format
-  * Update debian/control: fix dependencies and add myself to uploaders
+  * Add myself to uploaders
   * Remove obsoleted patches
   * Remove obsoleted notices about removed files for DFSG-compliance
-  * New upstream release
+  * Switch to dh9
 
- -- Yauhen Kharuzhy <jekhor@gmail.com>  Sat, 10 Mar 2012 14:34:48 +0300
+ -- Yauhen Kharuzhy <jekhor@gmail.com>  Sat, 10 Mar 2012 14:53:26 +0300
 
 openjpeg (1.3+dfsg-5) unstable; urgency=low
 

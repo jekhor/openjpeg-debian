@@ -177,30 +177,3 @@ Licence: Other
   LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
   OF THIS SOFTWARE.
 
-
-The files below have been removed from the Debian source package as their
-licences are not DFSG compatible.
-
-Files: j2kviewer/src/Exec.java
-Copyright: © 1997 Marty hall <hall@apl.jhu.edu>
-Licence: other
- This appears in Core Web Programming from Prentice Hall Publishers, and may be
- freely used or adapted.
-
-Files: j2kviewer/src/*
-Copyright: None specified
-Licence: None
- No licence is specified for these files.
-
-Files: JavaOpenJPEG/java\ sources/org/openJpeg/*
-Copyright: © 1999-2007 Telemis SA. All Rights Reserved
-Licence: None
- No licence is specified for these files.
-
-Files: libs/libtiff/libtiff.lib
-Copyright: Unknown
-Licence: Unknown
- This is a binary static library for win32 systems. As the file is not
- required, a binary library and there is no clear copyright and/or licence it
- has been removed from the Debian source package.
-

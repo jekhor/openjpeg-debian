@@ -6,10 +6,10 @@ export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed
 UVERSION = $(shell dpkg-parsechangelog | perl -ne 'print "$$1\n" if (/^Version: (.*?)(?:\.dfsg)?\-.*?$$/)')
 
 %:
-	dh $@
+	dh $@ --with autoreconf
 
 override_dh_auto_configure:
-	dh_auto_configure -- --enable-mj2 --disable-jpwl --enable-jpip --enable-jpip-server
+	dh_auto_configure -- --enable-mj2 --enable-jpwl --enable-jpip --enable-jpip-server
 
 override_dh_auto_build:
 	dh_auto_build
